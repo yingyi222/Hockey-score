@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hockey Scoreboard Mobile Stream</title>
+    <style>
+        body { margin: 0; padding: 10px; background: transparent; font-family: 'Arial Black', sans-serif; overflow: hidden; }
+        
+        .scoreboard-container {
+            display: flex;
+            width: 100%; /* 适配手机宽度 */
+            max-width: 800px;
+            height: 60px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #444;
+            align-items: stretch;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            margin: 0 auto;
+        }
+
+        .team-box {
+            display: flex;
+            align-items: center;
+            flex: 1;
+            padding: 0 10px;
+            position: relative;
+        }
+
+        .home { background: linear-gradient(90deg, #162d44, #2a5078); border-right: 1.5px solid #fff; }
+        .away { background: linear-gradient(90deg, #8b0000, #a52a2a); border-left: 1.5px solid #fff; }
+
+        .logo-btn { width: 40px; height: 40px; object-fit: contain; background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+        .name-input {
+            border: none;
+            background: transparent;
+            color: white;
+            font-size: 18px;
+            font-weight: 900;
+            width: 100%;
+            outline: none;
+            margin: 0 8px;
+            text-transform: uppercase;
+        }
+
+        .score-display {
+            font-size: 36px;
+            font-weight: 900;
+            color: white;
+            min-width: 50px;
+            text-align: center;
+            user-select: none;
+            -webkit-user-select: none; /* 禁止选中文本 */
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.3);
+            -webkit-touch-callout: none; /* 禁用系统菜单 */
+        }
+
+        .period-section {
+            width: 80px;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .period-select {
+            background: transparent;
+            color: #ffcc00; 
+            border: none;
+            font-size: 20px;
+            font-weight: 900;
+            outline: none;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            text-align-last: center;
+            appearance: none; 
+            -webkit-appearance: none;
+        }
+
+        .period-select option { background-color: #222; color: #ffcc00; }
+        input[type="file"] { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="scoreboard-container">
+    <div class="team-box home">
+        <label>
+            <input type="file" onchange="updateImage(event, 'img-home')">
+            <img id="img-home" class="logo-btn" src="https://via.placeholder.com/40" title="换Logo">
+        </label>
+        <input class="name-input" value="LAVAL">
+        <div class="score-display" id="score-home">0</div>
+    </div>
+
+    <div class="period-section">
+        <select class="period-select">
+            <option value="1st">1ST</option>
+            <option value="2nd">2ND</option>
+            <option value="3rd">3RD</option>
+            <option value="OT">OT</option>
+            <option value="SO">SO</option>
+            <option value="FINAL">FINAL</option>
+        </select>
+    </div>
+
+    <div class="team-box away">
+        <div class="score-display" id="score-away">0</div>
+        <input class="name-input" style="text-align: right;" value="POINTE">
+        <label>
+            <input type="file" onchange="updateImage(event, 'img-away')">
+            <img id="img-away" class="logo-btn" src="https://via.placeholder.com/40" title="换Logo">
+        </label>
+    </div>
+</div>
+
+<script>
+    function setupMobileScore(elementId) {
+        const el = document.getElementById(elementId);
+        let pressTimer;
+        let longPressed = false;
+
+        // 触摸开始
+        el.addEventListener('touchstart', (e) => {
+            longPressed = false;
+            pressTimer = setTimeout(() => {
+                changeScore(elementId, -1); // 长按减分
+                longPressed = true;
+                if (navigator.vibrate) navigator.vibrate(50); // 震动反馈
+            }, 600);
+        }, {passive: true});
+
+        // 触摸结束
+        el.addEventListener('touchend', (e) => {
+            clearTimeout(pressTimer);
+            if (!longPressed) {
+                changeScore(elementId, 1); // 短按加分
+            }
+        }, {passive: true});
+    }
+
+    function changeScore(id, amt) {
+        const el = document.getElementById(id);
+        let score = parseInt(el.innerText) + amt;
+        el.innerText = score < 0 ? 0 : score;
+    }
+
+    function updateImage(event, targetId) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => { document.getElementById(targetId).src = e.target.result; }
+            reader.readAsDataURL(file);
+        }
+    }
+
+    setupMobileScore('score-home');
+    setupMobileScore('score-away');
+
+    // 全局禁用系统右键/长按菜单
+    window.oncontextmenu = function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
+    };
+</script>
+
+</body>
+</html>
