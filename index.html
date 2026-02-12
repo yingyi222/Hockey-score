@@ -2,174 +2,91 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hockey Scoreboard Mobile Stream</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hockey Sync Scoreboard</title>
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
     <style>
         body { margin: 0; padding: 10px; background: transparent; font-family: 'Arial Black', sans-serif; overflow: hidden; }
-        
-        .scoreboard-container {
-            display: flex;
-            width: 100%; /* 适配手机宽度 */
-            max-width: 800px;
-            height: 60px;
-            background: rgba(0, 0, 0, 0.9);
-            border: 1px solid #444;
-            align-items: stretch;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-            margin: 0 auto;
-        }
-
-        .team-box {
-            display: flex;
-            align-items: center;
-            flex: 1;
-            padding: 0 10px;
-            position: relative;
-        }
-
-        .home { background: linear-gradient(90deg, #162d44, #2a5078); border-right: 1.5px solid #fff; }
-        .away { background: linear-gradient(90deg, #8b0000, #a52a2a); border-left: 1.5px solid #fff; }
-
-        .logo-btn { width: 40px; height: 40px; object-fit: contain; background: rgba(255,255,255,0.1); border-radius: 4px; }
-
-        .name-input {
-            border: none;
-            background: transparent;
-            color: white;
-            font-size: 18px;
-            font-weight: 900;
-            width: 100%;
-            outline: none;
-            margin: 0 8px;
-            text-transform: uppercase;
-        }
-
-        .score-display {
-            font-size: 36px;
-            font-weight: 900;
-            color: white;
-            min-width: 50px;
-            text-align: center;
-            user-select: none;
-            -webkit-user-select: none; /* 禁止选中文本 */
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(0,0,0,0.3);
-            -webkit-touch-callout: none; /* 禁用系统菜单 */
-        }
-
-        .period-section {
-            width: 80px;
-            background: #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .period-select {
-            background: transparent;
-            color: #ffcc00; 
-            border: none;
-            font-size: 20px;
-            font-weight: 900;
-            outline: none;
-            width: 100%;
-            height: 100%;
-            text-align: center;
-            text-align-last: center;
-            appearance: none; 
-            -webkit-appearance: none;
-        }
-
-        .period-select option { background-color: #222; color: #ffcc00; }
-        input[type="file"] { display: none; }
+        .scoreboard-container { display: flex; width: 900px; height: 70px; background: rgba(0,0,0,0.9); border: 2px solid #333; margin: 0 auto; }
+        .team-box { display: flex; align-items: center; flex: 1; padding: 0 15px; }
+        .home { background: linear-gradient(90deg, #162d44, #2a5078); border-right: 2px solid #fff; }
+        .away { background: linear-gradient(90deg, #8b0000, #a52a2a); border-left: 2px solid #fff; }
+        .name-input { border: none; background: transparent; color: white; font-size: 26px; font-weight: 900; width: 100%; outline: none; text-transform: uppercase; }
+        .score-display { font-size: 48px; font-weight: 900; color: white; min-width: 70px; text-align: center; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); cursor: pointer; }
+        .period-section { width: 110px; background: #000; display: flex; align-items: center; justify-content: center; }
+        .period-select { background: transparent; color: #ffcc00; border: none; font-size: 26px; font-weight: 900; outline: none; text-align: center; text-align-last: center; width: 100%; }
     </style>
 </head>
 <body>
 
 <div class="scoreboard-container">
     <div class="team-box home">
-        <label>
-            <input type="file" onchange="updateImage(event, 'img-home')">
-            <img id="img-home" class="logo-btn" src="https://via.placeholder.com/40" title="换Logo">
-        </label>
-        <input class="name-input" value="LAVAL">
-        <div class="score-display" id="score-home">0</div>
+        <input class="name-input" id="name1" value="LAVAL" onchange="pushData()">
+        <div class="score-display" onclick="updateScore('s1', 1)" oncontextmenu="updateScore('s1', -1); return false;" id="s1">0</div>
     </div>
-
     <div class="period-section">
-        <select class="period-select">
-            <option value="1st">1ST</option>
-            <option value="2nd">2ND</option>
-            <option value="3rd">3RD</option>
+        <select class="period-select" id="period" onchange="pushData()">
+            <option value="1ST">1ST</option>
+            <option value="2ND">2ND</option>
+            <option value="3RD">3RD</option>
             <option value="OT">OT</option>
-            <option value="SO">SO</option>
             <option value="FINAL">FINAL</option>
         </select>
     </div>
-
     <div class="team-box away">
-        <div class="score-display" id="score-away">0</div>
-        <input class="name-input" style="text-align: right;" value="POINTE">
-        <label>
-            <input type="file" onchange="updateImage(event, 'img-away')">
-            <img id="img-away" class="logo-btn" src="https://via.placeholder.com/40" title="换Logo">
-        </label>
+        <div class="score-display" id="s2" onclick="updateScore('s2', 1)" oncontextmenu="updateScore('s2', -1); return false;">0</div>
+        <input class="name-input" id="name2" style="text-align: right;" value="POINTE" onchange="pushData()">
     </div>
 </div>
 
 <script>
-    function setupMobileScore(elementId) {
-        const el = document.getElementById(elementId);
-        let pressTimer;
-        let longPressed = false;
-
-        // 触摸开始
-        el.addEventListener('touchstart', (e) => {
-            longPressed = false;
-            pressTimer = setTimeout(() => {
-                changeScore(elementId, -1); // 长按减分
-                longPressed = true;
-                if (navigator.vibrate) navigator.vibrate(50); // 震动反馈
-            }, 600);
-        }, {passive: true});
-
-        // 触摸结束
-        el.addEventListener('touchend', (e) => {
-            clearTimeout(pressTimer);
-            if (!longPressed) {
-                changeScore(elementId, 1); // 短按加分
-            }
-        }, {passive: true});
-    }
-
-    function changeScore(id, amt) {
-        const el = document.getElementById(id);
-        let score = parseInt(el.innerText) + amt;
-        el.innerText = score < 0 ? 0 : score;
-    }
-
-    function updateImage(event, targetId) {
-        const file = event.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => { document.getElementById(targetId).src = e.target.result; }
-            reader.readAsDataURL(file);
-        }
-    }
-
-    setupMobileScore('score-home');
-    setupMobileScore('score-away');
-
-    // 全局禁用系统右键/长按菜单
-    window.oncontextmenu = function(event) {
-        event.preventDefault();
-        event.stopPropagation();
-        return false;
+    // --- 这里填入你的 Firebase 配置 ---
+    const firebaseConfig = {
+        apiKey: "你的APIKEY",
+        authDomain: "你的项目名.firebaseapp.com",
+        databaseURL: "https://你的项目名.firebaseio.com",
+        projectId: "你的项目名",
+        storageBucket: "你的项目名.appspot.com",
+        messagingSenderId: "...",
+        appId: "..."
     };
-</script>
+    // ------------------------------
 
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database().ref('scoreboard');
+
+    // 修改分数逻辑
+    function updateScore(id, amt) {
+        let el = document.getElementById(id);
+        let val = parseInt(el.innerText) + amt;
+        if (val < 0) val = 0;
+        el.innerText = val;
+        pushData(); // 每次修改都推送到云端
+    }
+
+    // 将当前页面所有数据推送到云端
+    function pushData() {
+        db.set({
+            s1: document.getElementById('s1').innerText,
+            s2: document.getElementById('s2').innerText,
+            name1: document.getElementById('name1').value,
+            name2: document.getElementById('name2').value,
+            period: document.getElementById('period').value
+        });
+    }
+
+    // 监听云端数据，实时更新页面
+    db.on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            document.getElementById('s1').innerText = data.s1;
+            document.getElementById('s2').innerText = data.s2;
+            document.getElementById('name1').value = data.name1;
+            document.getElementById('name2').value = data.name2;
+            document.getElementById('period').value = data.period;
+        }
+    });
+</script>
 </body>
 </html>
