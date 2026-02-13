@@ -3,45 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hockey Scoreboard - Laval Live</title>
+    <title>Hockey Scoreboard - Dual Mode</title>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
     <style>
-        body { margin: 0; padding: 10px; background: transparent; font-family: 'Arial Black', sans-serif; overflow: hidden; touch-action: manipulation; }
-        .scoreboard-container { display: flex; width: 620px; height: 50px; background: rgba(0, 0, 0, 0.95); border: 1px solid #444; align-items: stretch; margin: 0 auto; border-radius: 4px; position: relative; }
+        /* --- 基础样式 --- */
+        body { margin: 0; padding: 0; font-family: 'Arial Black', sans-serif; background: transparent; overflow-x: hidden; }
+
+        /* --- 模式 1：电脑直播条版 (默认显示，屏幕宽于 650px) --- */
+        #pc-view { display: flex; width: 620px; height: 50px; background: rgba(0, 0, 0, 0.95); border: 1px solid #444; align-items: stretch; margin: 10px auto; border-radius: 4px; }
         .team-box { display: flex; align-items: center; width: 270px; padding: 0 5px; }
         .home { background: linear-gradient(90deg, #162d44, #2a5078); border-right: 2px solid #fff; }
         .away { background: linear-gradient(90deg, #8b0000, #a52a2a); border-left: 2px solid #fff; flex-direction: row-reverse; }
-        .logo-img { width: 38px; height: 38px; object-fit: contain; cursor: pointer; background: rgba(255,255,255,0.1); border-radius: 3px; z-index: 30; }
-        .name-input { border: none; background: transparent; color: white; font-size: 18px; font-weight: 900; width: 100%; outline: none; margin: 0 8px; text-transform: uppercase; }
-        .score-display { font-size: 36px; font-weight: 900; color: white; min-width: 55px; text-align: center; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); cursor: pointer; z-index: 40; user-select: none; -webkit-user-select: none; }
-        .period-section { width: 80px; background: #000; display: flex; align-items: center; justify-content: center; }
-        .period-select { background: transparent; color: #ffcc00; border: none; font-size: 20px; font-weight: 900; outline: none; width: 100%; text-align: center; text-align-last: center; appearance: none; }
-        input[type="file"] { display: none; }
+        .logo-img { width: 38px; height: 38px; object-fit: contain; }
+        .name-display { border: none; background: transparent; color: white; font-size: 18px; font-weight: 900; width: 100%; margin: 0 8px; text-transform: uppercase; text-align: center; }
+        .score-display { font-size: 36px; font-weight: 900; color: white; min-width: 55px; text-align: center; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); }
+        .period-section { width: 80px; background: #000; display: flex; align-items: center; justify-content: center; color: #ffcc00; font-size: 20px; font-weight: 900; }
+
+        /* --- 模式 2：手机大按钮版 (当屏幕宽度小于 650px 时激活) --- */
+        #mobile-view { display: none; padding: 20px; background: #1a1a1a; min-height: 100vh; color: white; }
+        .m-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 400px; margin: 0 auto; }
+        .m-card { background: #333; border-radius: 15px; padding: 15px; text-align: center; border-top: 6px solid #555; }
+        .m-home { border-color: #2a5078; }
+        .m-away { border-color: #a52a2a; }
+        .m-score { width: 100%; height: 100px; background: #444; border-radius: 10px; font-size: 50px; font-weight: bold; display: flex; align-items: center; justify-content: center; margin: 10px 0; touch-action: manipulation; }
+        .m-input { width: 90%; background: #222; border: 1px solid #444; color: white; text-align: center; padding: 5px; border-radius: 5px; }
+        .m-period-box { grid-column: span 2; background: #000; padding: 15px; border-radius: 10px; }
+        .m-period-select { width: 100%; height: 45px; background: #222; color: #ffcc00; font-size: 20px; border: none; text-align: center; }
+
+        /* --- 响应式切换逻辑 --- */
+        @media screen and (max-width: 650px) {
+            #pc-view { display: none; } /* 手机上隐藏直播条 */
+            #mobile-view { display: block; } /* 手机上显示大按钮 */
+            body { background: #1a1a1a; } /* 手机背景设为黑色方便操作 */
+        }
     </style>
 </head>
 <body>
 
-<div class="scoreboard-container">
+<div id="pc-view">
     <div class="team-box home">
-        <label><input type="file" onchange="uploadLogo(event, 'logo1')"><img id="logo1" class="logo-img" src="https://via.placeholder.com/40/162d44/ffffff?text=LAVAL"></label>
-        <input class="name-input" id="name1" value="LAVAL" onchange="pushData()">
-        <div class="score-display" id="s1">0</div>
+        <img id="pc-logo1" class="logo-img" src="https://via.placeholder.com/40/162d44/ffffff?text=L">
+        <div class="name-display" id="pc-name1">LAVAL</div>
+        <div class="score-display" id="pc-s1">0</div>
     </div>
-    <div class="period-section">
-        <select class="period-select" id="period" onchange="pushData()">
-            <option value="1ST">1ST</option><option value="2ND">2ND</option><option value="3RD">3RD</option><option value="OT">OT</option><option value="FINAL">FINAL</option>
-        </select>
-    </div>
+    <div class="period-section" id="pc-period">1ST</div>
     <div class="team-box away">
-        <label><input type="file" onchange="uploadLogo(event, 'logo2')"><img id="logo2" class="logo-img" src="https://via.placeholder.com/40/8b0000/ffffff?text=AWAY"></label>
-        <input class="name-input" id="name2" style="text-align: right;" value="AWAY" onchange="pushData()">
-        <div class="score-display" id="s2">0</div>
+        <img id="pc-logo2" class="logo-img" src="https://via.placeholder.com/40/8b0000/ffffff?text=A">
+        <div class="name-display" id="pc-name2">AWAY</div>
+        <div class="score-display" id="pc-s2">0</div>
+    </div>
+</div>
+
+<div id="mobile-view">
+    <div class="m-grid">
+        <div class="m-period-box">
+            <select class="m-period-select" id="m-period-sel" onchange="pushData()">
+                <option value="1ST">1ST</option><option value="2ND">2ND</option><option value="3RD">3RD</option><option value="OT">OT</option><option value="FINAL">FINAL</option>
+            </select>
+        </div>
+        <div class="m-card m-home">
+            <input class="m-input" id="m-name1-in" value="LAVAL" onchange="pushData()">
+            <div class="m-score" id="m-s1-btn">0</div>
+            <div style="font-size: 10px; color: #888;">TAP +1 | LONG -1</div>
+        </div>
+        <div class="m-card m-away">
+            <input class="m-input" id="m-name2-in" value="AWAY" onchange="pushData()">
+            <div class="m-score" id="m-s2-btn">0</div>
+            <div style="font-size: 10px; color: #888;">TAP +1 | LONG -1</div>
+        </div>
     </div>
 </div>
 
 <script>
-    // 使用你截图中的真实配置信息
     const firebaseConfig = {
         apiKey: "AIzaSyBJIWIwHKMwViEPqZ1O2T20nPKQB8WGX5w",
         authDomain: "hockey-live-4fb35.firebaseapp.com",
@@ -52,67 +86,7 @@
         appId: "1:953317134180:web:4374c570bab5f11b1a3471"
     };
 
-    // 初始化 Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database().ref('scoreboard');
 
-    // 修改分数函数
-    function changeScore(id, amt) {
-        let el = document.getElementById(id);
-        let val = parseInt(el.innerText) + amt;
-        el.innerText = val < 0 ? 0 : val;
-        pushData();
-    }
-
-    // 绑定手机手势：单击加分，长按半秒减分
-    function bindGestures(id) {
-        const el = document.getElementById(id);
-        let timer;
-        el.onclick = function() { changeScore(id, 1); };
-        el.ontouchstart = function() { timer = setTimeout(() => { changeScore(id, -1); timer = null; }, 600); };
-        el.ontouchend = function() { clearTimeout(timer); };
-        el.oncontextmenu = function(e) { e.preventDefault(); }; 
-    }
-
-    bindGestures('s1'); 
-    bindGestures('s2');
-
-    // 上传 Logo
-    function uploadLogo(event, imgId) {
-        const file = event.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) { document.getElementById(imgId).src = e.target.result; pushData(); };
-            reader.readAsDataURL(file);
-        }
-    }
-
-    // 推送数据到 Firebase
-    function pushData() {
-        db.set({
-            s1: document.getElementById('s1').innerText,
-            s2: document.getElementById('s2').innerText,
-            name1: document.getElementById('name1').value,
-            name2: document.getElementById('name2').value,
-            period: document.getElementById('period').value,
-            logo1: document.getElementById('logo1').src,
-            logo2: document.getElementById('logo2').src
-        });
-    }
-
-    // 实时监听同步
-    db.on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-            document.getElementById('s1').innerText = data.s1 || "0";
-            document.getElementById('s2').innerText = data.s2 || "0";
-            document.getElementById('name1').value = data.name1 || "LAVAL";
-            document.getElementById('name2').value = data.name2 || "AWAY";
-            document.getElementById('period').value = data.period || "1ST";
-            if (data.logo1) document.getElementById('logo1').src = data.logo1;
-            if (data.logo2) document.getElementById('logo2').src = data.logo2;
-        }
-    });
-</script>
-</body>
-</html>
+    // 统一的数据推送
