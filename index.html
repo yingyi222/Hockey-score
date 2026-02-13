@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hockey Scoreboard - Final Fix</title>
+    <title>Hockey Scoreboard - Period Fixed</title>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
     <style>
         body { margin: 0; padding: 0; font-family: 'Arial Black', sans-serif; background: transparent; }
         
-        /* 电脑/直播视图 */
+        /* 电脑直播视图 */
         #pc-view { display: flex; width: 620px; height: 50px; background: rgba(0, 0, 0, 0.95); border: 1px solid #444; align-items: stretch; margin: 20px auto; border-radius: 4px; }
         .team-box { display: flex; align-items: center; width: 270px; padding: 0 5px; }
         .home { background: linear-gradient(90deg, #162d44, #2a5078); border-right: 2px solid #fff; }
@@ -23,7 +23,9 @@
         #mobile-view { display: none; padding: 15px; background: #1a1a1a; min-height: 100vh; color: white; }
         .m-card { background: #333; border-radius: 12px; padding: 10px; text-align: center; margin-bottom: 15px; border-top: 5px solid #444; }
         .m-score { width: 100%; height: 80px; background: #444; border-radius: 8px; font-size: 48px; display: flex; align-items: center; justify-content: center; margin: 10px 0; }
-        .m-btn { background: #555; border: none; color: white; padding: 8px 15px; border-radius: 4px; margin: 5px; }
+        .m-btn { background: #555; border: none; color: white; padding: 12px 20px; border-radius: 6px; margin: 5px; font-weight: bold; font-size: 18px; }
+        .m-input { width: 90%; background: #222; border: 1px solid #555; color: white; text-align: center; padding: 8px; border-radius: 5px; font-size: 16px; }
+        .period-sel { width: 100%; height: 50px; background: #000; color: #ffcc00; font-size: 24px; font-weight: bold; border: 2px solid #444; border-radius: 8px; text-align: center; }
         input[type="file"] { display: none; }
 
         @media screen and (max-width: 650px) {
@@ -49,29 +51,37 @@
 </div>
 
 <div id="mobile-view">
-    <h3 style="text-align:center">SCORE CONTROL</h3>
-    <div class="m-card" style="border-color: #2a5078;">
-        <input id="in-name1" value="LAVAL" onchange="updateData()">
-        <div class="m-score" id="m-s1">0</div>
-        <button class="m-btn" onclick="changeS('m-s1', 1)">+1</button>
-        <button class="m-btn" onclick="changeS('m-s1', -1)">-1</button>
-        <label class="m-btn">LOGO<input type="file" onchange="uploadL(event, 'm-logo1')"></label>
-        <img id="m-logo1" style="width:30px; vertical-align:middle">
-    </div>
-
-    <div style="text-align:center; margin: 10px 0;">
-        <select id="in-period" onchange="updateData()" style="font-size: 20px;">
-            <option value="1ST">1ST</option><option value="2ND">2ND</option><option value="3RD">3RD</option><option value="OT">OT</option><option value="FINAL">FINAL</option>
+    <div class="m-card" style="background: #222;">
+        <div style="font-size: 12px; color: #888; margin-bottom: 5px;">CURRENT PERIOD</div>
+        <select class="period-sel" id="in-period" onchange="updateData()">
+            <option value="1ST">1ST</option>
+            <option value="2ND">2ND</option>
+            <option value="3RD">3RD</option>
+            <option value="OT">OT</option>
+            <option value="FINAL">FINAL</option>
         </select>
     </div>
 
+    <div class="m-card" style="border-color: #2a5078;">
+        <input class="m-input" id="in-name1" value="LAVAL" onchange="updateData()">
+        <div class="m-score" id="m-s1">0</div>
+        <button class="m-btn" onclick="changeS('m-s1', 1)">+ 1</button>
+        <button class="m-btn" onclick="changeS('m-s1', -1)">- 1</button>
+        <div style="margin-top:10px;">
+            <label class="m-btn" style="background:#2a5078">UPLOAD LOGO<input type="file" onchange="uploadL(event, 'm-logo1')"></label>
+            <img id="m-logo1" style="width:40px; height:40px; vertical-align:middle; margin-left:10px; object-fit:contain;">
+        </div>
+    </div>
+
     <div class="m-card" style="border-color: #a52a2a;">
-        <input id="in-name2" value="AWAY" onchange="updateData()">
+        <input class="m-input" id="in-name2" value="AWAY" onchange="updateData()">
         <div class="m-score" id="m-s2">0</div>
-        <button class="m-btn" onclick="changeS('m-s2', 1)">+1</button>
-        <button class="m-btn" onclick="changeS('m-s2', -1)">-1</button>
-        <label class="m-btn">LOGO<input type="file" onchange="uploadL(event, 'm-logo2')"></label>
-        <img id="m-logo2" style="width:30px; vertical-align:middle">
+        <button class="m-btn" onclick="changeS('m-s2', 1)">+ 1</button>
+        <button class="m-btn" onclick="changeS('m-s2', -1)">- 1</button>
+        <div style="margin-top:10px;">
+            <label class="m-btn" style="background:#8b0000">UPLOAD LOGO<input type="file" onchange="uploadL(event, 'm-logo2')"></label>
+            <img id="m-logo2" style="width:40px; height:40px; vertical-align:middle; margin-left:10px; object-fit:contain;">
+        </div>
     </div>
 </div>
 
@@ -100,7 +110,10 @@
         const file = event.target.files[0];
         if (file) {
             const reader = new FileReader();
-            reader.onload = (e) => { document.getElementById(imgId).src = e.target.result; updateData(); };
+            reader.onload = (e) => { 
+                document.getElementById(imgId).src = e.target.result; 
+                updateData(); 
+            };
             reader.readAsDataURL(file);
         }
     }
@@ -112,32 +125,18 @@
             n1: document.getElementById('in-name1').value,
             n2: document.getElementById('in-name2').value,
             p: document.getElementById('in-period').value,
-            l1: document.getElementById('m-logo1').src,
-            l2: document.getElementById('m-logo2').src
+            l1: document.getElementById('m-logo1').src || "",
+            l2: document.getElementById('m-logo2').src || ""
         });
     }
 
     db.on('value', (s) => {
         const d = s.val();
         if (d) {
-            // 同步 PC
-            document.getElementById('pc-s1').innerText = d.s1;
-            document.getElementById('pc-s2').innerText = d.s2;
-            document.getElementById('pc-name1').innerText = d.n1;
-            document.getElementById('pc-name2').innerText = d.n2;
-            document.getElementById('pc-period').innerText = d.p;
-            document.getElementById('pc-logo1').src = d.l1 || "";
-            document.getElementById('pc-logo2').src = d.l2 || "";
-            // 同步 Mobile
-            document.getElementById('m-s1').innerText = d.s1;
-            document.getElementById('m-s2').innerText = d.s2;
-            document.getElementById('in-name1').value = d.n1;
-            document.getElementById('in-name2').value = d.n2;
-            document.getElementById('in-period').value = d.p;
-            document.getElementById('m-logo1').src = d.l1 || "";
-            document.getElementById('m-logo2').src = d.l2 || "";
-        }
-    });
-</script>
-</body>
-</html>
+            // 同步电脑端显示
+            document.getElementById('pc-s1').innerText = d.s1 || "0";
+            document.getElementById('pc-s2').innerText = d.s2 || "0";
+            document.getElementById('pc-name1').innerText = d.n1 || "HOME";
+            document.getElementById('pc-name2').innerText = d.n2 || "AWAY";
+            document.getElementById('pc-period').innerText = d.p || "1ST";
+            document.getElementById('pc-logo1').src = d.l1
