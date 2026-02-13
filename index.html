@@ -3,39 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hockey Scoreboard - Dual Mode</title>
+    <title>Hockey Scoreboard - Final Fix</title>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
     <style>
-        /* --- 基础样式 --- */
-        body { margin: 0; padding: 0; font-family: 'Arial Black', sans-serif; background: transparent; overflow-x: hidden; }
-
-        /* --- 模式 1：电脑直播条版 (默认显示，屏幕宽于 650px) --- */
-        #pc-view { display: flex; width: 620px; height: 50px; background: rgba(0, 0, 0, 0.95); border: 1px solid #444; align-items: stretch; margin: 10px auto; border-radius: 4px; }
+        body { margin: 0; padding: 0; font-family: 'Arial Black', sans-serif; background: transparent; }
+        
+        /* 电脑/直播视图 */
+        #pc-view { display: flex; width: 620px; height: 50px; background: rgba(0, 0, 0, 0.95); border: 1px solid #444; align-items: stretch; margin: 20px auto; border-radius: 4px; }
         .team-box { display: flex; align-items: center; width: 270px; padding: 0 5px; }
         .home { background: linear-gradient(90deg, #162d44, #2a5078); border-right: 2px solid #fff; }
         .away { background: linear-gradient(90deg, #8b0000, #a52a2a); border-left: 2px solid #fff; flex-direction: row-reverse; }
-        .logo-img { width: 38px; height: 38px; object-fit: contain; }
-        .name-display { border: none; background: transparent; color: white; font-size: 18px; font-weight: 900; width: 100%; margin: 0 8px; text-transform: uppercase; text-align: center; }
-        .score-display { font-size: 36px; font-weight: 900; color: white; min-width: 55px; text-align: center; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); }
-        .period-section { width: 80px; background: #000; display: flex; align-items: center; justify-content: center; color: #ffcc00; font-size: 20px; font-weight: 900; }
+        .logo-img { width: 38px; height: 38px; object-fit: contain; background: rgba(255,255,255,0.1); }
+        .name-display { color: white; font-size: 18px; width: 100%; text-align: center; text-transform: uppercase; }
+        .score-display { font-size: 36px; color: white; min-width: 55px; text-align: center; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); }
+        .period-section { width: 80px; background: #000; display: flex; align-items: center; justify-content: center; color: #ffcc00; font-size: 20px; }
 
-        /* --- 模式 2：手机大按钮版 (当屏幕宽度小于 650px 时激活) --- */
-        #mobile-view { display: none; padding: 20px; background: #1a1a1a; min-height: 100vh; color: white; }
-        .m-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 400px; margin: 0 auto; }
-        .m-card { background: #333; border-radius: 15px; padding: 15px; text-align: center; border-top: 6px solid #555; }
-        .m-home { border-color: #2a5078; }
-        .m-away { border-color: #a52a2a; }
-        .m-score { width: 100%; height: 100px; background: #444; border-radius: 10px; font-size: 50px; font-weight: bold; display: flex; align-items: center; justify-content: center; margin: 10px 0; touch-action: manipulation; }
-        .m-input { width: 90%; background: #222; border: 1px solid #444; color: white; text-align: center; padding: 5px; border-radius: 5px; }
-        .m-period-box { grid-column: span 2; background: #000; padding: 15px; border-radius: 10px; }
-        .m-period-select { width: 100%; height: 45px; background: #222; color: #ffcc00; font-size: 20px; border: none; text-align: center; }
+        /* 手机控制器视图 */
+        #mobile-view { display: none; padding: 15px; background: #1a1a1a; min-height: 100vh; color: white; }
+        .m-card { background: #333; border-radius: 12px; padding: 10px; text-align: center; margin-bottom: 15px; border-top: 5px solid #444; }
+        .m-score { width: 100%; height: 80px; background: #444; border-radius: 8px; font-size: 48px; display: flex; align-items: center; justify-content: center; margin: 10px 0; }
+        .m-btn { background: #555; border: none; color: white; padding: 8px 15px; border-radius: 4px; margin: 5px; }
+        input[type="file"] { display: none; }
 
-        /* --- 响应式切换逻辑 --- */
         @media screen and (max-width: 650px) {
-            #pc-view { display: none; } /* 手机上隐藏直播条 */
-            #mobile-view { display: block; } /* 手机上显示大按钮 */
-            body { background: #1a1a1a; } /* 手机背景设为黑色方便操作 */
+            #pc-view { display: none; }
+            #mobile-view { display: block; }
         }
     </style>
 </head>
@@ -43,35 +36,42 @@
 
 <div id="pc-view">
     <div class="team-box home">
-        <img id="pc-logo1" class="logo-img" src="https://via.placeholder.com/40/162d44/ffffff?text=L">
+        <img id="pc-logo1" class="logo-img" src="">
         <div class="name-display" id="pc-name1">LAVAL</div>
         <div class="score-display" id="pc-s1">0</div>
     </div>
     <div class="period-section" id="pc-period">1ST</div>
     <div class="team-box away">
-        <img id="pc-logo2" class="logo-img" src="https://via.placeholder.com/40/8b0000/ffffff?text=A">
+        <img id="pc-logo2" class="logo-img" src="">
         <div class="name-display" id="pc-name2">AWAY</div>
         <div class="score-display" id="pc-s2">0</div>
     </div>
 </div>
 
 <div id="mobile-view">
-    <div class="m-grid">
-        <div class="m-period-box">
-            <select class="m-period-select" id="m-period-sel" onchange="pushData()">
-                <option value="1ST">1ST</option><option value="2ND">2ND</option><option value="3RD">3RD</option><option value="OT">OT</option><option value="FINAL">FINAL</option>
-            </select>
-        </div>
-        <div class="m-card m-home">
-            <input class="m-input" id="m-name1-in" value="LAVAL" onchange="pushData()">
-            <div class="m-score" id="m-s1-btn">0</div>
-            <div style="font-size: 10px; color: #888;">TAP +1 | LONG -1</div>
-        </div>
-        <div class="m-card m-away">
-            <input class="m-input" id="m-name2-in" value="AWAY" onchange="pushData()">
-            <div class="m-score" id="m-s2-btn">0</div>
-            <div style="font-size: 10px; color: #888;">TAP +1 | LONG -1</div>
-        </div>
+    <h3 style="text-align:center">SCORE CONTROL</h3>
+    <div class="m-card" style="border-color: #2a5078;">
+        <input id="in-name1" value="LAVAL" onchange="updateData()">
+        <div class="m-score" id="m-s1">0</div>
+        <button class="m-btn" onclick="changeS('m-s1', 1)">+1</button>
+        <button class="m-btn" onclick="changeS('m-s1', -1)">-1</button>
+        <label class="m-btn">LOGO<input type="file" onchange="uploadL(event, 'm-logo1')"></label>
+        <img id="m-logo1" style="width:30px; vertical-align:middle">
+    </div>
+
+    <div style="text-align:center; margin: 10px 0;">
+        <select id="in-period" onchange="updateData()" style="font-size: 20px;">
+            <option value="1ST">1ST</option><option value="2ND">2ND</option><option value="3RD">3RD</option><option value="OT">OT</option><option value="FINAL">FINAL</option>
+        </select>
+    </div>
+
+    <div class="m-card" style="border-color: #a52a2a;">
+        <input id="in-name2" value="AWAY" onchange="updateData()">
+        <div class="m-score" id="m-s2">0</div>
+        <button class="m-btn" onclick="changeS('m-s2', 1)">+1</button>
+        <button class="m-btn" onclick="changeS('m-s2', -1)">-1</button>
+        <label class="m-btn">LOGO<input type="file" onchange="uploadL(event, 'm-logo2')"></label>
+        <img id="m-logo2" style="width:30px; vertical-align:middle">
     </div>
 </div>
 
@@ -89,4 +89,55 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database().ref('scoreboard');
 
-    // 统一的数据推送
+    function changeS(id, amt) {
+        let el = document.getElementById(id);
+        let v = parseInt(el.innerText) + amt;
+        el.innerText = v < 0 ? 0 : v;
+        updateData();
+    }
+
+    function uploadL(event, imgId) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => { document.getElementById(imgId).src = e.target.result; updateData(); };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function updateData() {
+        db.set({
+            s1: document.getElementById('m-s1').innerText,
+            s2: document.getElementById('m-s2').innerText,
+            n1: document.getElementById('in-name1').value,
+            n2: document.getElementById('in-name2').value,
+            p: document.getElementById('in-period').value,
+            l1: document.getElementById('m-logo1').src,
+            l2: document.getElementById('m-logo2').src
+        });
+    }
+
+    db.on('value', (s) => {
+        const d = s.val();
+        if (d) {
+            // 同步 PC
+            document.getElementById('pc-s1').innerText = d.s1;
+            document.getElementById('pc-s2').innerText = d.s2;
+            document.getElementById('pc-name1').innerText = d.n1;
+            document.getElementById('pc-name2').innerText = d.n2;
+            document.getElementById('pc-period').innerText = d.p;
+            document.getElementById('pc-logo1').src = d.l1 || "";
+            document.getElementById('pc-logo2').src = d.l2 || "";
+            // 同步 Mobile
+            document.getElementById('m-s1').innerText = d.s1;
+            document.getElementById('m-s2').innerText = d.s2;
+            document.getElementById('in-name1').value = d.n1;
+            document.getElementById('in-name2').value = d.n2;
+            document.getElementById('in-period').value = d.p;
+            document.getElementById('m-logo1').src = d.l1 || "";
+            document.getElementById('m-logo2').src = d.l2 || "";
+        }
+    });
+</script>
+</body>
+</html>
