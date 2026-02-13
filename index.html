@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hockey Scoreboard - Period Fixed</title>
+    <title>Hockey Scoreboard - Final Fix</title>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
     <style>
-        body { margin: 0; padding: 0; font-family: 'Arial Black', sans-serif; background: transparent; }
+        body { margin: 0; padding: 0; font-family: 'Arial Black', sans-serif; background: transparent; color: white; }
         
-        /* 电脑直播视图 */
+        /* 电脑直播条 */
         #pc-view { display: flex; width: 620px; height: 50px; background: rgba(0, 0, 0, 0.95); border: 1px solid #444; align-items: stretch; margin: 20px auto; border-radius: 4px; }
         .team-box { display: flex; align-items: center; width: 270px; padding: 0 5px; }
         .home { background: linear-gradient(90deg, #162d44, #2a5078); border-right: 2px solid #fff; }
@@ -19,13 +19,13 @@
         .score-display { font-size: 36px; color: white; min-width: 55px; text-align: center; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); }
         .period-section { width: 80px; background: #000; display: flex; align-items: center; justify-content: center; color: #ffcc00; font-size: 20px; }
 
-        /* 手机控制器视图 */
-        #mobile-view { display: none; padding: 15px; background: #1a1a1a; min-height: 100vh; color: white; }
+        /* 手机控制面板 */
+        #mobile-view { display: none; padding: 15px; background: #1a1a1a; min-height: 100vh; }
         .m-card { background: #333; border-radius: 12px; padding: 10px; text-align: center; margin-bottom: 15px; border-top: 5px solid #444; }
         .m-score { width: 100%; height: 80px; background: #444; border-radius: 8px; font-size: 48px; display: flex; align-items: center; justify-content: center; margin: 10px 0; }
-        .m-btn { background: #555; border: none; color: white; padding: 12px 20px; border-radius: 6px; margin: 5px; font-weight: bold; font-size: 18px; }
-        .m-input { width: 90%; background: #222; border: 1px solid #555; color: white; text-align: center; padding: 8px; border-radius: 5px; font-size: 16px; }
-        .period-sel { width: 100%; height: 50px; background: #000; color: #ffcc00; font-size: 24px; font-weight: bold; border: 2px solid #444; border-radius: 8px; text-align: center; }
+        .m-btn { background: #555; border: none; color: white; padding: 12px 20px; border-radius: 6px; margin: 5px; font-weight: bold; }
+        .m-input { width: 90%; background: #222; border: 1px solid #555; color: white; text-align: center; padding: 8px; font-size: 16px; }
+        .period-sel { width: 100%; height: 50px; background: #000; color: #ffcc00; font-size: 24px; text-align: center; border: 2px solid #444; }
         input[type="file"] { display: none; }
 
         @media screen and (max-width: 650px) {
@@ -38,50 +38,41 @@
 
 <div id="pc-view">
     <div class="team-box home">
-        <img id="pc-logo1" class="logo-img" src="">
-        <div class="name-display" id="pc-name1">LAVAL</div>
+        <img id="pc-l1" class="logo-img" src="">
+        <div class="name-display" id="pc-n1">LAVAL</div>
         <div class="score-display" id="pc-s1">0</div>
     </div>
-    <div class="period-section" id="pc-period">1ST</div>
+    <div class="period-section" id="pc-p">1ST</div>
     <div class="team-box away">
-        <img id="pc-logo2" class="logo-img" src="">
-        <div class="name-display" id="pc-name2">AWAY</div>
+        <img id="pc-l2" class="logo-img" src="">
+        <div class="name-display" id="pc-n2">AWAY</div>
         <div class="score-display" id="pc-s2">0</div>
     </div>
 </div>
 
 <div id="mobile-view">
-    <div class="m-card" style="background: #222;">
-        <div style="font-size: 12px; color: #888; margin-bottom: 5px;">CURRENT PERIOD</div>
-        <select class="period-sel" id="in-period" onchange="updateData()">
-            <option value="1ST">1ST</option>
-            <option value="2ND">2ND</option>
-            <option value="3RD">3RD</option>
-            <option value="OT">OT</option>
-            <option value="FINAL">FINAL</option>
+    <div class="m-card">
+        <select class="period-sel" id="in-p" onchange="updateData()">
+            <option value="1ST">1ST</option><option value="2ND">2ND</option><option value="3RD">3RD</option><option value="OT">OT</option><option value="FINAL">FINAL</option>
         </select>
     </div>
 
     <div class="m-card" style="border-color: #2a5078;">
-        <input class="m-input" id="in-name1" value="LAVAL" onchange="updateData()">
+        <input class="m-input" id="in-n1" value="LAVAL" onchange="updateData()">
         <div class="m-score" id="m-s1">0</div>
         <button class="m-btn" onclick="changeS('m-s1', 1)">+ 1</button>
         <button class="m-btn" onclick="changeS('m-s1', -1)">- 1</button>
-        <div style="margin-top:10px;">
-            <label class="m-btn" style="background:#2a5078">UPLOAD LOGO<input type="file" onchange="uploadL(event, 'm-logo1')"></label>
-            <img id="m-logo1" style="width:40px; height:40px; vertical-align:middle; margin-left:10px; object-fit:contain;">
-        </div>
+        <label class="m-btn" style="display:block; margin-top:10px; background:#444">UPLOAD LOGO<input type="file" onchange="uploadL(event, 'm-l1')"></label>
+        <img id="m-l1" style="width:40px; height:40px; margin-top:5px; object-fit:contain;">
     </div>
 
     <div class="m-card" style="border-color: #a52a2a;">
-        <input class="m-input" id="in-name2" value="AWAY" onchange="updateData()">
+        <input class="m-input" id="in-n2" value="AWAY" onchange="updateData()">
         <div class="m-score" id="m-s2">0</div>
         <button class="m-btn" onclick="changeS('m-s2', 1)">+ 1</button>
         <button class="m-btn" onclick="changeS('m-s2', -1)">- 1</button>
-        <div style="margin-top:10px;">
-            <label class="m-btn" style="background:#8b0000">UPLOAD LOGO<input type="file" onchange="uploadL(event, 'm-logo2')"></label>
-            <img id="m-logo2" style="width:40px; height:40px; vertical-align:middle; margin-left:10px; object-fit:contain;">
-        </div>
+        <label class="m-btn" style="display:block; margin-top:10px; background:#444">UPLOAD LOGO<input type="file" onchange="uploadL(event, 'm-l2')"></label>
+        <img id="m-l2" style="width:40px; height:40px; margin-top:5px; object-fit:contain;">
     </div>
 </div>
 
@@ -110,10 +101,7 @@
         const file = event.target.files[0];
         if (file) {
             const reader = new FileReader();
-            reader.onload = (e) => { 
-                document.getElementById(imgId).src = e.target.result; 
-                updateData(); 
-            };
+            reader.onload = (e) => { document.getElementById(imgId).src = e.target.result; updateData(); };
             reader.readAsDataURL(file);
         }
     }
@@ -122,21 +110,32 @@
         db.set({
             s1: document.getElementById('m-s1').innerText,
             s2: document.getElementById('m-s2').innerText,
-            n1: document.getElementById('in-name1').value,
-            n2: document.getElementById('in-name2').value,
-            p: document.getElementById('in-period').value,
-            l1: document.getElementById('m-logo1').src || "",
-            l2: document.getElementById('m-logo2').src || ""
+            n1: document.getElementById('in-n1').value,
+            n2: document.getElementById('in-n2').value,
+            p: document.getElementById('in-p').value,
+            l1: document.getElementById('m-l1').src || "",
+            l2: document.getElementById('m-l2').src || ""
         });
     }
 
     db.on('value', (s) => {
         const d = s.val();
         if (d) {
-            // 同步电脑端显示
-            document.getElementById('pc-s1').innerText = d.s1 || "0";
-            document.getElementById('pc-s2').innerText = d.s2 || "0";
-            document.getElementById('pc-name1').innerText = d.n1 || "HOME";
-            document.getElementById('pc-name2').innerText = d.n2 || "AWAY";
-            document.getElementById('pc-period').innerText = d.p || "1ST";
-            document.getElementById('pc-logo1').src = d.l1
+            // 同步所有显示项
+            document.getElementById('pc-s1').innerText = document.getElementById('m-s1').innerText = d.s1 || "0";
+            document.getElementById('pc-s2').innerText = document.getElementById('m-s2').innerText = d.s2 || "0";
+            document.getElementById('pc-n1').innerText = d.n1 || "HOME";
+            document.getElementById('pc-n2').innerText = d.n2 || "AWAY";
+            document.getElementById('pc-p').innerText = d.p || "1ST";
+            document.getElementById('pc-l1').src = document.getElementById('m-l1').src = d.l1 || "";
+            document.getElementById('pc-l2').src = document.getElementById('m-l2').src = d.l2 || "";
+            if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT') {
+                document.getElementById('in-n1').value = d.n1 || "HOME";
+                document.getElementById('in-n2').value = d.n2 || "AWAY";
+                document.getElementById('in-p').value = d.p || "1ST";
+            }
+        }
+    });
+</script>
+</body>
+</html>
