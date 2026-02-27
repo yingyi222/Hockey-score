@@ -2,140 +2,196 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hockey Scoreboard - Final Fix</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hockey Scoreboard - Perfect Alignment</title>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
     <style>
-        body { margin: 0; padding: 0; font-family: 'Arial Black', sans-serif; background: transparent; color: white; }
+        body { margin: 0; padding: 0; font-family: 'Arial Narrow', sans-serif; background: transparent; color: white; }
         
-        /* 电脑直播条 */
-        #pc-view { display: flex; width: 620px; height: 50px; background: rgba(0, 0, 0, 0.95); border: 1px solid #444; align-items: stretch; margin: 20px auto; border-radius: 4px; }
-        .team-box { display: flex; align-items: center; width: 270px; padding: 0 5px; }
-        .home { background: linear-gradient(90deg, #162d44, #2a5078); border-right: 2px solid #fff; }
-        .away { background: linear-gradient(90deg, #8b0000, #a52a2a); border-left: 2px solid #fff; flex-direction: row-reverse; }
-        .logo-img { width: 38px; height: 38px; object-fit: contain; background: rgba(255,255,255,0.1); }
-        .name-display { color: white; font-size: 18px; width: 100%; text-align: center; text-transform: uppercase; }
-        .score-display { font-size: 36px; color: white; min-width: 55px; text-align: center; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); }
-        .period-section { width: 80px; background: #000; display: flex; align-items: center; justify-content: center; color: #ffcc00; font-size: 20px; }
-
-        /* 手机控制面板 */
-        #mobile-view { display: none; padding: 15px; background: #1a1a1a; min-height: 100vh; }
-        .m-card { background: #333; border-radius: 12px; padding: 10px; text-align: center; margin-bottom: 15px; border-top: 5px solid #444; }
-        .m-score { width: 100%; height: 80px; background: #444; border-radius: 8px; font-size: 48px; display: flex; align-items: center; justify-content: center; margin: 10px 0; }
-        .m-btn { background: #555; border: none; color: white; padding: 12px 20px; border-radius: 6px; margin: 5px; font-weight: bold; }
-        .m-input { width: 90%; background: #222; border: 1px solid #555; color: white; text-align: center; padding: 8px; font-size: 16px; }
-        .period-sel { width: 100%; height: 50px; background: #000; color: #ffcc00; font-size: 24px; text-align: center; border: 2px solid #444; }
-        input[type="file"] { display: none; }
-
-        @media screen and (max-width: 650px) {
-            #pc-view { display: none; }
-            #mobile-view { display: block; }
+        /* 保持 0.25 倍率缩小 */
+        #pc-view {
+            display: flex; flex-direction: column; align-items: center;
+            padding-top: 50px; transform: scale(0.25); transform-origin: top center;
         }
+
+        #main-scoreboard { 
+            display: flex; align-items: center; justify-content: center; 
+            gap: 0; /* 彻底消除组件间的默认间距 */
+        }
+
+        .team-group { display: flex; align-items: center; position: relative; }
+        .flex-reverse { flex-direction: row-reverse; }
+
+        /* Logo 尺寸放大且保持间距 */
+        .logo-img { 
+            width: 210px; height: 210px; object-fit: contain; 
+            z-index: 150; margin: 0 0.2em;
+            filter: drop-shadow(0 8px 20px rgba(0,0,0,0.6));
+        }
+
+        /* 渐变条：通过负 margin 实现与比分框的无缝连接 */
+        .name-bar {
+            height: 100px; padding: 0 60px; display: flex; align-items: center;
+            transform: skew(-15deg); border: 2px solid rgba(255,255,255,0.8);
+            backdrop-filter: blur(12px); box-sizing: border-box;
+        }
+        
+        /* 关键：调整 margin 让条子直接怼到比分框边缘 */
+        #bar-h { 
+            background: linear-gradient(to left, rgba(10,10,10,0.95), rgba(22,45,68,1)); 
+            margin-right: -130px; /* 负值确保它钻到 Logo 下方并连接比分框 */
+            padding-right: 150px;
+        }
+        #bar-a { 
+            background: linear-gradient(to right, rgba(10,10,10,0.95), rgba(139,0,0,1)); 
+            margin-left: -130px; 
+            padding-left: 150px;
+        }
+
+        .name-txt { font-size: 60px; font-weight: 950; transform: skew(15deg); white-space: nowrap; text-transform: uppercase; }
+
+        /* 中间核心区：强制等高 */
+        .center-group { 
+            display: flex; align-items: center; z-index: 200; 
+            height: 160px; /* 统一高度 */
+        }
+
+        .score-box {
+            width: 160px; height: 160px; display: flex; align-items: center; justify-content: center;
+            border: 8px solid #fff; transform: skew(-15deg); box-sizing: border-box;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+        }
+        
+        /* 节数框：通过强制高度和去掉左右边框实现完美衔接 */
+        #period-box {
+            width: 110px; height: 160px; /* 与比分框高度严格一致 */
+            background: rgba(0,0,0,0.85); color: #ffcc00;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 38px; font-weight: 950; box-sizing: border-box;
+            border: 8px solid #fff; border-left: none; border-right: none; /* 仅保留上下边 */
+            transform: skew(-15deg); margin: 0 -4px; /* 稍微重叠消除像素缝隙 */
+        }
+        
+        .score-val { font-size: 125px; font-weight: 950; transform: skew(15deg); }
+        .period-txt { transform: skew(15deg); }
+
+        /* 手机端布局 (保持全功能) */
+        #mobile-ctrl { display: none; padding: 20px; background: #121212; min-height: 100vh; }
+        .ctrl-card { background: #222; border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid #444; }
+        .m-input { width: 100%; background: #000; border: 1px solid #444; color: #fff; padding: 12px; margin: 5px 0; border-radius: 8px; }
+        .score-row { display: flex; align-items: center; justify-content: space-around; margin: 15px 0; }
+        .m-btn { background: #555; border: none; color: white; width: 60px; height: 60px; border-radius: 10px; font-size: 24px; }
+
+        @media screen and (max-width: 800px) { #pc-view { display: none; } #mobile-ctrl { display: block; } }
     </style>
 </head>
 <body>
 
 <div id="pc-view">
-    <div class="team-box home">
-        <img id="pc-l1" class="logo-img" src="">
-        <div class="name-display" id="pc-n1">LAVAL</div>
-        <div class="score-display" id="pc-s1">0</div>
-    </div>
-    <div class="period-section" id="pc-p">1ST</div>
-    <div class="team-box away">
-        <img id="pc-l2" class="logo-img" src="">
-        <div class="name-display" id="pc-n2">AWAY</div>
-        <div class="score-display" id="pc-s2">0</div>
-    </div>
-</div>
+    <div id="main-scoreboard">
+        <div class="team-group flex-reverse">
+            <img id="pc-l1" class="logo-img" src="">
+            <div class="name-bar" id="bar-h"><div class="name-txt" id="pc-n1">HOME</div></div>
+        </div>
 
-<div id="mobile-view">
-    <div class="m-card">
-        <select class="period-sel" id="in-p" onchange="updateData()">
-            <option value="1ST">1ST</option><option value="2ND">2ND</option><option value="3RD">3RD</option><option value="OT">OT</option><option value="FINAL">FINAL</option>
-        </select>
-    </div>
+        <div class="center-group">
+            <div class="score-box" id="box-h"><div class="score-val" id="pc-s1">0</div></div>
+            <div id="period-box"><div class="period-txt" id="pc-p">1ST</div></div>
+            <div class="score-box" id="box-a"><div class="score-val" id="pc-s2">0</div></div>
+        </div>
 
-    <div class="m-card" style="border-color: #2a5078;">
-        <input class="m-input" id="in-n1" value="LAVAL" onchange="updateData()">
-        <div class="m-score" id="m-s1">0</div>
-        <button class="m-btn" onclick="changeS('m-s1', 1)">+ 1</button>
-        <button class="m-btn" onclick="changeS('m-s1', -1)">- 1</button>
-        <label class="m-btn" style="display:block; margin-top:10px; background:#444">UPLOAD LOGO<input type="file" onchange="uploadL(event, 'm-l1')"></label>
-        <img id="m-l1" style="width:40px; height:40px; margin-top:5px; object-fit:contain;">
-    </div>
-
-    <div class="m-card" style="border-color: #a52a2a;">
-        <input class="m-input" id="in-n2" value="AWAY" onchange="updateData()">
-        <div class="m-score" id="m-s2">0</div>
-        <button class="m-btn" onclick="changeS('m-s2', 1)">+ 1</button>
-        <button class="m-btn" onclick="changeS('m-s2', -1)">- 1</button>
-        <label class="m-btn" style="display:block; margin-top:10px; background:#444">UPLOAD LOGO<input type="file" onchange="uploadL(event, 'm-l2')"></label>
-        <img id="m-l2" style="width:40px; height:40px; margin-top:5px; object-fit:contain;">
+        <div class="team-group">
+            <img id="pc-l2" class="logo-img" src="">
+            <div class="name-bar" id="bar-a"><div class="name-txt" id="pc-n2">AWAY</div></div>
+        </div>
     </div>
 </div>
 
 <script>
+    // Firebase 配置
     const firebaseConfig = {
         apiKey: "AIzaSyBJIWIwHKMwViEPqZ1O2T20nPKQB8WGX5w",
         authDomain: "hockey-live-4fb35.firebaseapp.com",
         databaseURL: "https://hockey-live-4fb35-default-rtdb.firebaseio.com",
         projectId: "hockey-live-4fb35",
-        storageBucket: "hockey-live-4fb35.firebasestorage.app",
-        messagingSenderId: "953317134180",
-        appId: "1:953317134180:web:4374c570bab5f11b1a3471"
+        storageBucket: "hockey-live-4fb35.firebasestorage.app"
     };
-
     firebase.initializeApp(firebaseConfig);
-    const db = firebase.database().ref('scoreboard');
+    const db = firebase.database().ref('vPerfect_Scoreboard');
 
-    function changeS(id, amt) {
-        let el = document.getElementById(id);
-        let v = parseInt(el.innerText) + amt;
-        el.innerText = v < 0 ? 0 : v;
-        updateData();
+    function chS(id, v) {
+        let el = document.getElementById('m-'+id);
+        el.innerText = Math.max(0, parseInt(el.innerText) + v);
+        push();
     }
 
-    function uploadL(event, imgId) {
-        const file = event.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => { document.getElementById(imgId).src = e.target.result; updateData(); };
-            reader.readAsDataURL(file);
-        }
+    function upL(input, side) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById('pc-l'+side).src = e.target.result;
+            push();
+        };
+        reader.readAsDataURL(input.files[0]);
     }
 
-    function updateData() {
+    function push() {
         db.set({
+            n1: document.getElementById('in-n1').value || "HOME",
+            n2: document.getElementById('in-n2').value || "AWAY",
             s1: document.getElementById('m-s1').innerText,
             s2: document.getElementById('m-s2').innerText,
-            n1: document.getElementById('in-n1').value,
-            n2: document.getElementById('in-n2').value,
+            c1: document.getElementById('in-c1').value,
+            c2: document.getElementById('in-c2').value,
             p: document.getElementById('in-p').value,
-            l1: document.getElementById('m-l1').src || "",
-            l2: document.getElementById('m-l2').src || ""
+            l1: document.getElementById('pc-l1').src || "",
+            l2: document.getElementById('pc-l2').src || ""
         });
     }
 
-    db.on('value', (s) => {
-        const d = s.val();
-        if (d) {
-            // 同步所有显示项
-            document.getElementById('pc-s1').innerText = document.getElementById('m-s1').innerText = d.s1 || "0";
-            document.getElementById('pc-s2').innerText = document.getElementById('m-s2').innerText = d.s2 || "0";
-            document.getElementById('pc-n1').innerText = d.n1 || "HOME";
-            document.getElementById('pc-n2').innerText = d.n2 || "AWAY";
-            document.getElementById('pc-p').innerText = d.p || "1ST";
-            document.getElementById('pc-l1').src = document.getElementById('m-l1').src = d.l1 || "";
-            document.getElementById('pc-l2').src = document.getElementById('m-l2').src = d.l2 || "";
-            if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT') {
-                document.getElementById('in-n1').value = d.n1 || "HOME";
-                document.getElementById('in-n2').value = d.n2 || "AWAY";
-                document.getElementById('in-p').value = d.p || "1ST";
-            }
+    db.on('value', (snap) => {
+        const d = snap.val(); if(!d) return;
+        document.getElementById('pc-n1').innerText = d.n1;
+        document.getElementById('pc-n2').innerText = d.n2;
+        document.getElementById('pc-s1').innerText = d.s1;
+        document.getElementById('pc-s2').innerText = d.s2;
+        document.getElementById('pc-p').innerText = d.p;
+        document.getElementById('pc-l1').src = d.l1;
+        document.getElementById('pc-l2').src = d.l2;
+        document.getElementById('box-h').style.backgroundColor = d.c1;
+        document.getElementById('box-a').style.backgroundColor = d.c2;
+        
+        // 动态渐变逻辑
+        document.getElementById('bar-h').style.background = `linear-gradient(to left, rgba(15,15,15,0.95), ${d.c1})`;
+        document.getElementById('bar-a').style.background = `linear-gradient(to right, rgba(15,15,15,0.95), ${d.c2})`;
+
+        if(document.activeElement.tagName !== 'INPUT') {
+            document.getElementById('in-n1').value = d.n1;
+            document.getElementById('in-n2').value = d.n2;
+            document.getElementById('m-s1').innerText = d.s1;
+            document.getElementById('m-s2').innerText = d.s2;
+            document.getElementById('in-p').value = d.p;
         }
     });
 </script>
+
+<div id="mobile-ctrl">
+    <div class="ctrl-card">
+        <select id="in-p" onchange="push()" class="m-input" style="color:#fc0;"><option>1ST</option><option>2ND</option><option>3RD</option><option>OT</option><option>FINAL</option></select>
+    </div>
+    <div class="ctrl-card">
+        <input id="in-n1" class="m-input" placeholder="HOME NAME" oninput="push()">
+        <input type="color" id="in-c1" onchange="push()">
+        <div class="score-row"><button class="m-btn" onclick="chS('s1',-1)">-</button><span id="m-s1">0</span><button class="m-btn" onclick="chS('s1',1)">+</button></div>
+        <input type="file" onchange="upL(this, 1)">
+    </div>
+    <div class="ctrl-card">
+        <input id="in-n2" class="m-input" placeholder="AWAY NAME" oninput="push()">
+        <input type="color" id="in-c2" onchange="push()">
+        <div class="score-row"><button class="m-btn" onclick="chS('s2',-1)">-</button><span id="m-s2">0</span><button class="m-btn" onclick="chS('s2',1)">+</button></div>
+        <input type="file" onchange="upL(this, 2)">
+    </div>
+</div>
+
 </body>
 </html>
