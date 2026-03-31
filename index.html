@@ -310,28 +310,25 @@ db.on('value', (snap) => {
     if (d.c1) document.getElementById('in-c1').value = d.c1;
     if (d.c2) document.getElementById('in-c2').value = d.c2;
 
-    // 自动取色逻辑（Away 自动，Home 永远蓝色除非手动）
-    const awayLogo = document.getElementById('pc-l2');
+    // 自动取色（不依赖 onload）
+if (document.getElementById('pc-l2').src) {
+    getDominantColorFromImage(document.getElementById('pc-l2'), (autoColor) => {
 
-    awayLogo.onload = () => {
-        getDominantColorFromImage(awayLogo, (autoColor) => {
+        // Away：手动优先，否则自动
+        const finalAwayColor = (d.c2 && d.c2.trim() !== "") ? d.c2 : autoColor;
 
-            // Away：手动优先，否则自动
-            const finalAwayColor = (d.c2 && d.c2.trim() !== "") ? d.c2 : autoColor;
+        document.getElementById('box-a').style.backgroundColor = finalAwayColor;
+        document.getElementById('bar-a').style.background =
+            `linear-gradient(to right, rgba(15,15,15,0.95), ${finalAwayColor})`;
 
-            document.getElementById('box-a').style.backgroundColor = finalAwayColor;
-            document.getElementById('bar-a').style.background =
-                `linear-gradient(to right, rgba(15,15,15,0.95), ${finalAwayColor})`;
+        // Home：手动优先，否则 Laval 蓝
+        const finalHomeColor = (d.c1 && d.c1.trim() !== "") ? d.c1 : "#0A3A78";
 
-            // Home：手动优先，否则永远 Laval 蓝
-            const finalHomeColor = (d.c1 && d.c1.trim() !== "") ? d.c1 : defaultHomeColor;
-
-            document.getElementById('box-h').style.backgroundColor = finalHomeColor;
-            document.getElementById('bar-h').style.background =
-                `linear-gradient(to left, rgba(15,15,15,0.95), ${finalHomeColor})`;
-        });
-    };
-});
+        document.getElementById('box-h').style.backgroundColor = finalHomeColor;
+        document.getElementById('bar-h').style.background =
+            `linear-gradient(to left, rgba(15,15,15,0.95), ${finalHomeColor})`;
+    });
+}
 
 
 </script>
