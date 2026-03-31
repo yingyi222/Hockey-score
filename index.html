@@ -105,6 +105,51 @@
 </head>
 <body>
 
+
+<div id="mobile-ctrl">
+    <!-- PERIOD -->
+    <div class="ctrl-card">
+        <select id="in-p" onchange="push()" class="m-input" style="color:#fc0;">
+            <option>1ST</option>
+            <option>2ND</option>
+            <option>3RD</option>
+            <option>OT</option>
+            <option>FINAL</option>
+        </select>
+    </div>
+
+    <!-- HOME -->
+    <div class="ctrl-card">
+        <input id="in-n1" class="m-input" placeholder="HOME NAME" oninput="push()">
+        <input type="color" id="in-c1" onchange="push()">
+
+        <div class="score-row">
+            <button class="m-btn" onclick="chS('m-s1', -1)">-</button>
+            <span id="m-s1" style="font-size:40px;">0</span>
+            <button class="m-btn" onclick="chS('m-s1', 1)">+</button>
+        </div>
+
+        <input type="file" onchange="upL(this, 1)">
+    </div>
+
+    <!-- AWAY -->
+    <div class="ctrl-card">
+        <input id="in-n2" class="m-input" placeholder="AWAY NAME" oninput="push()">
+        <input type="color" id="in-c2" onchange="push()">
+
+        <div class="score-row">
+            <button class="m-btn" onclick="chS('m-s2', -1)">-</button>
+            <span id="m-s2" style="font-size:40px;">0</span>
+            <button class="m-btn" onclick="chS('m-s2', 1)">+</button>
+        </div>
+
+        <input type="file" onchange="upL(this, 2)">
+    </div>
+</div>
+
+
+
+<!-- 这是你贴的显示区（pc-view） -->
 <div id="pc-view">
     <div id="main-scoreboard">
         <div class="team-group flex-reverse">
@@ -125,92 +170,170 @@
     </div>
 </div>
 
+
+
 <script>
-    // Firebase 配置保持不变
-    const firebaseConfig = {
-        apiKey: "AIzaSyBJIWIwHKMwViEPqZ1O2T20nPKQB8WGX5w",
-        authDomain: "hockey-live-4fb35.firebaseapp.com",
-        databaseURL: "https://hockey-live-4fb35-default-rtdb.firebaseio.com",
-        projectId: "hockey-live-4fb35",
-        storageBucket: "hockey-live-4fb35.firebasestorage.app",
-        messagingSenderId: "953317134180",
-        appId: "1:953317134180:web:4374c570bab5f11b1a3471"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database().ref('vMega_Scoreboard');
 
-    function chS(id, v) {
-        let el = document.getElementById('m-'+id);
-        el.innerText = Math.max(0, parseInt(el.innerText) + v);
-        push();
-    }
+// 修改分数
+function chS(id, delta) {
+    const el = document.getElementById(id);
+    let v = parseInt(el.innerText);
+    v += delta;
+    if (v < 0) v = 0;
+    el.innerText = v;
+    push(); // 每次改分数都同步
+}
 
-    function upL(input, side) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            document.getElementById('pc-l'+side).src = e.target.result;
-            push();
-        };
-        reader.readAsDataURL(input.files[0]);
-    }
+// 上传 logo
+function upL(input, team) {
+    const file = input.files[0];
+    if (!file) return;
 
-    function push() {
-        db.set({
-            n1: document.getElementById('in-n1').value || "HOME",
-            n2: document.getElementById('in-n2').value || "AWAY",
-            s1: document.getElementById('m-s1').innerText,
-            s2: document.getElementById('m-s2').innerText,
-            c1: document.getElementById('in-c1').value,
-            c2: document.getElementById('in-c2').value,
-            p: document.getElementById('in-p').value,
-            l1: document.getElementById('pc-l1').src || "",
-            l2: document.getElementById('pc-l2').src || ""
-        });
-    }
-
-    db.on('value', (snap) => {
-        const d = snap.val(); if(!d) return;
-        document.getElementById('pc-n1').innerText = d.n1;
-        document.getElementById('pc-n2').innerText = d.n2;
-        document.getElementById('pc-s1').innerText = d.s1;
-        document.getElementById('pc-s2').innerText = d.s2;
-        document.getElementById('pc-p').innerText = d.p;
-        document.getElementById('pc-l1').src = d.l1;
-        document.getElementById('pc-l2').src = d.l2;
-        document.getElementById('box-h').style.backgroundColor = d.c1;
-        document.getElementById('box-a').style.backgroundColor = d.c2;
-        
-        // 渐变对接逻辑
-        document.getElementById('bar-h').style.background = `linear-gradient(to left, rgba(15,15,15,0.95), ${d.c1})`;
-        document.getElementById('bar-a').style.background = `linear-gradient(to right, rgba(15,15,15,0.95), ${d.c2})`;
-
-        if(document.activeElement.tagName !== 'INPUT') {
-            document.getElementById('in-n1').value = d.n1;
-            document.getElementById('in-n2').value = d.n2;
-            document.getElementById('m-s1').innerText = d.s1;
-            document.getElementById('m-s2').innerText = d.s2;
-            document.getElementById('in-p').value = d.p;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        if (team === 1) {
+            document.getElementById('pc-l1').src = e.target.result;
+        } else {
+            document.getElementById('pc-l2').src = e.target.result;
         }
-    });
+        push();
+    };
+    reader.readAsDataURL(file);
+}
+
+// Firebase 配置
+const firebaseConfig = {
+    apiKey: "AIzaSyBJIWIwHKMwViEPqZ1O2T20nPKQB8WGX5w",
+    authDomain: "hockey-live-4fb35.firebaseapp.com",
+    databaseURL: "https://hockey-live-4fb35-default-rtdb.firebaseio.com",
+    projectId: "hockey-live-4fb35",
+    storageBucket: "hockey-live-4fb35.firebasestorage.app",
+    messagingSenderId: "953317134180",
+    appId: "1:953317134180:web:4374c570bab5f11b1a3471"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database().ref('vMega_Scoreboard');
+
+// 自动取色
+function getDominantColorFromImage(imgElement, callback) {
+    const img = new Image();
+    img.crossOrigin = "Anonymous";
+    img.src = imgElement.src;
+
+    img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        canvas.width = img.width;
+        canvas.height = img.height;
+
+        ctx.drawImage(img, 0, 0);
+
+        const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+        let r = 0, g = 0, b = 0, count = 0;
+
+        for (let i = 0; i < data.length; i += 4) {
+            r += data[i];
+            g += data[i + 1];
+            b += data[i + 2];
+            count++;
+        }
+
+        r = Math.round(r / count);
+        g = Math.round(g / count);
+        b = Math.round(b / count);
+
+        const hex = "#" +
+            r.toString(16).padStart(2, "0") +
+            g.toString(16).padStart(2, "0") +
+            b.toString(16).padStart(2, "0");
+
+        callback(hex);
+    };
+}
+
+// 写入 Firebase（适配旧版 mobile-ctrl）
+function push() {
+    const data = {};
+
+    // 队名
+    const n1 = document.getElementById('in-n1').value.trim();
+    const n2 = document.getElementById('in-n2').value.trim();
+    if (n1 !== "") data.n1 = n1;
+    if (n2 !== "") data.n2 = n2;
+
+    // 分数
+    data.s1 = document.getElementById('m-s1').innerText;
+    data.s2 = document.getElementById('m-s2').innerText;
+
+    // 颜色（只有用户选了才写）
+    const c1 = document.getElementById('in-c1').value;
+    const c2 = document.getElementById('in-c2').value;
+    if (c1 !== "") data.c1 = c1;
+    if (c2 !== "") data.c2 = c2;
+
+    // logo
+    const l1 = document.getElementById('pc-l1').src;
+    const l2 = document.getElementById('pc-l2').src;
+    if (l1) data.l1 = l1;
+    if (l2) data.l2 = l2;
+
+    // period（select）
+    data.p = document.getElementById('in-p').value;
+
+    db.update(data);
+}
+
+// 读取 Firebase → 更新网页端（pc-view）
+db.on('value', (snap) => {
+    const d = snap.val() || {};
+
+    const defaultHomeColor = "#0A3A78"; // Laval 蓝色
+
+    // 队名
+    document.getElementById('pc-n1').innerText = d.n1 || "HOME";
+    document.getElementById('pc-n2').innerText = d.n2 || "AWAY";
+
+    // 分数
+    document.getElementById('pc-s1').innerText = d.s1 || 0;
+    document.getElementById('pc-s2').innerText = d.s2 || 0;
+
+    // period
+    document.getElementById('pc-p').innerText = d.p || "1ST";
+
+    // logo
+    if (d.l1) document.getElementById('pc-l1').src = d.l1;
+    if (d.l2) document.getElementById('pc-l2').src = d.l2;
+
+    // 手动颜色（同步回手机端）
+    if (d.c1) document.getElementById('in-c1').value = d.c1;
+    if (d.c2) document.getElementById('in-c2').value = d.c2;
+
+    // 自动取色逻辑（Away 自动，Home 永远蓝色除非手动）
+    const awayLogo = document.getElementById('pc-l2');
+
+    awayLogo.onload = () => {
+        getDominantColorFromImage(awayLogo, (autoColor) => {
+
+            // Away：手动优先，否则自动
+            const finalAwayColor = (d.c2 && d.c2.trim() !== "") ? d.c2 : autoColor;
+
+            document.getElementById('box-a').style.backgroundColor = finalAwayColor;
+            document.getElementById('bar-a').style.background =
+                `linear-gradient(to right, rgba(15,15,15,0.95), ${finalAwayColor})`;
+
+            // Home：手动优先，否则永远 Laval 蓝
+            const finalHomeColor = (d.c1 && d.c1.trim() !== "") ? d.c1 : defaultHomeColor;
+
+            document.getElementById('box-h').style.backgroundColor = finalHomeColor;
+            document.getElementById('bar-h').style.background =
+                `linear-gradient(to left, rgba(15,15,15,0.95), ${finalHomeColor})`;
+        });
+    };
+});
+
+
 </script>
-
-<div id="mobile-ctrl">
-    <div class="ctrl-card">
-        <select id="in-p" onchange="push()" class="m-input" style="color:#fc0;"><option>1ST</option><option>2ND</option><option>3RD</option><option>OT</option><option>FINAL</option></select>
-    </div>
-    <div class="ctrl-card">
-        <input id="in-n1" class="m-input" placeholder="HOME NAME" oninput="push()">
-        <input type="color" id="in-c1" onchange="push()">
-        <div class="score-row"><button class="m-btn" onclick="chS('s1',-1)">-</button><span id="m-s1" style="font-size:40px;">0</span><button class="m-btn" onclick="chS('s1',1)">+</button></div>
-        <input type="file" onchange="upL(this, 1)">
-    </div>
-    <div class="ctrl-card">
-        <input id="in-n2" class="m-input" placeholder="AWAY NAME" oninput="push()">
-        <input type="color" id="in-c2" onchange="push()">
-        <div class="score-row"><button class="m-btn" onclick="chS('s2',-1)">-</button><span id="m-s2" style="font-size:40px;">0</span><button class="m-btn" onclick="chS('s2',1)">+</button></div>
-        <input type="file" onchange="upL(this, 2)">
-    </div>
-</div>
-
 </body>
 </html>
