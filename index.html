@@ -173,35 +173,7 @@
 
 
 <script>
-
-// 修改分数
-function chS(id, delta) {
-    const el = document.getElementById(id);
-    let v = parseInt(el.innerText);
-    v += delta;
-    if (v < 0) v = 0;
-    el.innerText = v;
-    push(); // 每次改分数都同步
-}
-
-// 上传 logo
-function upL(input, team) {
-    const file = input.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        if (team === 1) {
-            document.getElementById('pc-l1').src = e.target.result;
-        } else {
-            document.getElementById('pc-l2').src = e.target.result;
-        }
-        push();
-    };
-    reader.readAsDataURL(file);
-}
-
-// Firebase 配置
+// --- 1. 基础配置 ---
 const firebaseConfig = {
     apiKey: "AIzaSyBJIWIwHKMwViEPqZ1O2T20nPKQB8WGX5w",
     authDomain: "hockey-live-4fb35.firebaseapp.com",
@@ -214,126 +186,104 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database().ref('vMega_Scoreboard');
 
-// 自动取色
+const defaultHomeColor = "#0A3A78"; // Laval 蓝
+
+// --- 2. 核心功能函数 ---
+function chS(id, delta) {
+    const el = document.getElementById(id);
+    let v = parseInt(el.innerText) || 0;
+    v = Math.max(0, v + delta);
+    el.innerText = v;
+    push();
+}
+
+function upL(input, team) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        document.getElementById('pc-l' + team).src = e.target.result;
+        push();
+    };
+    reader.readAsDataURL(file);
+}
+
+function push() {
+    db.set({
+        n1: document.getElementById('in-n1').value || "HOME",
+        n2: document.getElementById('in-n2').value || "AWAY",
+        s1: document.getElementById('m-s1').innerText,
+        s2: document.getElementById('m-s2').innerText,
+        c1: document.getElementById('in-c1').value,
+        c2: document.getElementById('in-c2').value,
+        p: document.getElementById('in-p').value,
+        l1: document.getElementById('pc-l1').src || "",
+        l2: document.getElementById('pc-l2').src || ""
+    });
+}
+
+// 自动取色辅助
 function getDominantColorFromImage(imgElement, callback) {
+    if (!imgElement.src || imgElement.src.includes('window.location')) return callback("#333");
     const img = new Image();
     img.crossOrigin = "Anonymous";
     img.src = imgElement.src;
-
     img.onload = () => {
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
-
-        canvas.width = img.width;
-        canvas.height = img.height;
-
-        ctx.drawImage(img, 0, 0);
-
-        const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-
-        let r = 0, g = 0, b = 0, count = 0;
-
-        for (let i = 0; i < data.length; i += 4) {
-            r += data[i];
-            g += data[i + 1];
-            b += data[i + 2];
-            count++;
-        }
-
-        r = Math.round(r / count);
-        g = Math.round(g / count);
-        b = Math.round(b / count);
-
-        const hex = "#" +
-            r.toString(16).padStart(2, "0") +
-            g.toString(16).padStart(2, "0") +
-            b.toString(16).padStart(2, "0");
-
-        callback(hex);
+        canvas.width = 10; canvas.height = 10; // 采样小图即可
+        ctx.drawImage(img, 0, 0, 10, 10);
+        const data = ctx.getImageData(0, 0, 10, 10).data;
+        let r=0, g=0, b=0;
+        for (let i=0; i<data.length; i+=4) { r+=data[i]; g+=data[i+1]; b+=data[i+2]; }
+        callback(`rgb(${Math.round(r/100)},${Math.round(g/100)},${Math.round(b/100)})`);
     };
+    img.onerror = () => callback("#333");
 }
 
-// 写入 Firebase（适配旧版 mobile-ctrl）
-function push() {
-    const data = {};
-
-    // 队名
-    const n1 = document.getElementById('in-n1').value.trim();
-    const n2 = document.getElementById('in-n2').value.trim();
-    if (n1 !== "") data.n1 = n1;
-    if (n2 !== "") data.n2 = n2;
-
-    // 分数
-    data.s1 = document.getElementById('m-s1').innerText;
-    data.s2 = document.getElementById('m-s2').innerText;
-
-    // 颜色（只有用户选了才写）
-    const c1 = document.getElementById('in-c1').value;
-    const c2 = document.getElementById('in-c2').value;
-    if (c1 !== "") data.c1 = c1;
-    if (c2 !== "") data.c2 = c2;
-
-    // logo
-    const l1 = document.getElementById('pc-l1').src;
-    const l2 = document.getElementById('pc-l2').src;
-    if (l1) data.l1 = l1;
-    if (l2) data.l2 = l2;
-
-    // period（select）
-    data.p = document.getElementById('in-p').value;
-
-    db.update(data);
-}
-
-// 读取 Firebase → 更新网页端（pc-view）
+// --- 3. 实时监听与渲染 (修复变黑问题的关键) ---
 db.on('value', (snap) => {
     const d = snap.val() || {};
 
-    const defaultHomeColor = "#0A3A78"; // Laval 蓝色
-
-    // 队名
+    // A. 同步文字和图片
     document.getElementById('pc-n1').innerText = d.n1 || "HOME";
     document.getElementById('pc-n2').innerText = d.n2 || "AWAY";
-
-    // 分数
-    document.getElementById('pc-s1').innerText = d.s1 || 0;
-    document.getElementById('pc-s2').innerText = d.s2 || 0;
-
-    // period
+    document.getElementById('pc-s1').innerText = d.s1 || "0";
+    document.getElementById('pc-s2').innerText = d.s2 || "0";
     document.getElementById('pc-p').innerText = d.p || "1ST";
-
-    // logo
     if (d.l1) document.getElementById('pc-l1').src = d.l1;
     if (d.l2) document.getElementById('pc-l2').src = d.l2;
 
-    // 手动颜色（同步回手机端）
-    if (d.c1) document.getElementById('in-c1').value = d.c1;
-    if (d.c2) document.getElementById('in-c2').value = d.c2;
+    // B. 同步控制台输入框 (不干扰正在输入的文字)
+    if (document.activeElement.id !== 'in-n1') document.getElementById('in-n1').value = d.n1 || "";
+    if (document.activeElement.id !== 'in-n2') document.getElementById('in-n2').value = d.n2 || "";
+    document.getElementById('m-s1').innerText = d.s1 || "0";
+    document.getElementById('m-s2').innerText = d.s2 || "0";
+    document.getElementById('in-p').value = d.p || "1ST";
 
-    // 自动取色逻辑（Away 自动，Home 永远蓝色除非手动）
-    const awayLogo = document.getElementById('pc-l2');
+    // C. 颜色渲染逻辑 (修正嵌套错误)
+    const applyColors = (awayAutoColor) => {
+        const finalHome = (d.c1 && d.c1 !== "#000000") ? d.c1 : defaultHomeColor;
+        const finalAway = (d.c2 && d.c2 !== "#000000") ? d.c2 : awayAutoColor;
 
-    awayLogo.onload = () => {
-        getDominantColorFromImage(awayLogo, (autoColor) => {
-
-            // Away：手动优先，否则自动
-            const finalAwayColor = (d.c2 && d.c2.trim() !== "") ? d.c2 : autoColor;
-
-            document.getElementById('box-a').style.backgroundColor = finalAwayColor;
-            document.getElementById('bar-a').style.background =
-                `linear-gradient(to right, rgba(15,15,15,0.95), ${finalAwayColor})`;
-
-            // Home：手动优先，否则永远 Laval 蓝
-            const finalHomeColor = (d.c1 && d.c1.trim() !== "") ? d.c1 : defaultHomeColor;
-
-            document.getElementById('box-h').style.backgroundColor = finalHomeColor;
-            document.getElementById('bar-h').style.background =
-                `linear-gradient(to left, rgba(15,15,15,0.95), ${finalHomeColor})`;
-        });
+        // 应用到 Home
+        document.getElementById('box-h').style.backgroundColor = finalHome;
+        document.getElementById('bar-h').style.background = `linear-gradient(to left, rgba(15,15,15,0.9), ${finalHome})`;
+        
+        // 应用到 Away
+        document.getElementById('box-a').style.backgroundColor = finalAway;
+        document.getElementById('bar-a').style.background = `linear-gradient(to right, rgba(15,15,15,0.9), ${finalAway})`;
     };
+
+    // 立即以默认色渲染一次，防止变黑
+    applyColors("#333");
+
+    // 尝试获取 Away Logo 颜色进行优化
+    const aImg = document.getElementById('pc-l2');
+    getDominantColorFromImage(aImg, (color) => {
+        applyColors(color);
+    });
 });
-
-
 </script>
 </body>
 </html>
