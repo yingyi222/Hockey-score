@@ -157,21 +157,46 @@
 <!-- 这是你贴的显示区（pc-view） -->
 <div id="pc-view">
     <div id="main-scoreboard">
+
+        <!-- HOME -->
         <div class="team-group flex-reverse">
-            <img id="pc-l1" class="logo-img" src="">
-            <div class="name-bar" id="bar-h"><div class="name-txt" id="pc-n1">HOME</div></div>
+            <!-- 给一个透明 PNG，避免空白闪动 -->
+            <img id="pc-l1" class="logo-img" src="transparent.png">
+
+            <!-- 给初始颜色（深蓝）和初始队名 -->
+            <div class="name-bar" id="bar-h" style="background:linear-gradient(to left, rgba(15,15,15,0.9), #0A3A78);">
+                <div class="name-txt" id="pc-n1">HOME TEAM</div>
+            </div>
         </div>
 
+        <!-- 中间比分区 -->
         <div class="center-group">
-            <div class="score-box" id="box-h"><div class="score-val" id="pc-s1">0</div></div>
-            <div id="period-box"><div class="period-txt" id="pc-p">1ST</div></div>
-            <div class="score-box" id="box-a"><div class="score-val" id="pc-s2">0</div></div>
+            <!-- 初始 Home 颜色 -->
+            <div class="score-box" id="box-h" style="background-color:#0A3A78;">
+                <div class="score-val" id="pc-s1">0</div>
+            </div>
+
+            <div id="period-box">
+                <div class="period-txt" id="pc-p">1ST</div>
+            </div>
+
+            <!-- 初始 Away 颜色 -->
+            <div class="score-box" id="box-a" style="background-color:#333333;">
+                <div class="score-val" id="pc-s2">0</div>
+            </div>
         </div>
 
+        <!-- AWAY -->
         <div class="team-group">
-            <img id="pc-l2" class="logo-img" src="">
-            <div class="name-bar" id="bar-a"><div class="name-txt" id="pc-n2">AWAY</div></div>
+            <!-- 给透明 PNG，避免空白闪动 -->
+            <img id="pc-l2" class="logo-img" src="transparent.png">
+
+            <!-- 初始 Away 渐变 -->
+            <div class="name-bar" id="bar-a" style="background:linear-gradient(to right, rgba(15,15,15,0.9), #333333);">
+                <div class="name-txt" id="pc-n2">AWAY TEAM</div>
+            </div>
         </div>
+
     </div>
 </div>
 
