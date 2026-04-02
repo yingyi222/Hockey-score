@@ -302,17 +302,32 @@ function upL(input, team) {
     const file = input.files[0];
     if (!file) return;
     const reader = new FileReader();
+    
     reader.onload = (e) => {
         const imgTag = document.getElementById('pc-l' + team);
-        imgTag.src = e.target.result; // 先显示图片
+        const base64Data = e.target.result;
         
-        // 图片显示后，只在这里取一次色
-        imgTag.onload = () => {
-            getDominantColorFromImage(imgTag, (color) => {
-                const hexColor = color ? rgbToHex(color) : (team === 1 ? "#0A3A78" : "#333333");
-                // 存入对应的 Color Input，这样 push 时会带上颜色
-                document.getElementById('in-c' + team).value = hexColor;
-                push(); // 这一步极其重要，把取到的颜色永久存入 Firebase
+        // 1. 第一时间更新本地预览
+        imgTag.src = base64Data; 
+
+        // 2. 第一时间同步到 Firebase，这样 Logo 会立刻在所有屏幕上更新
+        // 注意：这里先带上当前的颜色值，防止颜色丢失
+        push(); 
+
+        // 3. 异步取色：等 Logo 换好了，再去计算颜色
+        // 这样不会因为取色慢而卡住 Logo 的更新
+        const tempImg = new Image();
+        tempImg.src = base64Data;
+        tempImg.onload = () => {
+            getDominantColorFromImage(tempImg, (color) => {
+                if (color) {
+                    // 获取转换函数（确保你代码里有 rgbToHex，如果没有我再给你）
+                    const hexColor = rgbToHex(color);
+                    document.getElementById('in-c' + team).value = hexColor;
+                    
+                    // 颜色取到了，再 push 一次更新背景颜色
+                    push();
+                }
             });
         };
     };
@@ -350,9 +365,11 @@ document.getElementById('pc-view').style.display = "flex";
     if (d.c1) document.getElementById('in-c1').value = d.c1;
     if (d.c2) document.getElementById('in-c2').value = d.c2;
 
-    // D. 颜色应用逻辑（只用 Firebase 的颜色）
+    // D. 颜色应用逻辑
 const applyTheme = () => {
-    const finalH = d.c1 || defaultHomeColor;
+    // 只要数据库里有颜色（哪怕是黑的），就听数据库的
+    // 只有当数据库完全没数据时，才用默认色
+    const finalH = d.c1 || "#0A3A78"; 
     const finalA = d.c2 || "#333333";
 
     document.getElementById('box-h').style.backgroundColor = finalH;
@@ -362,9 +379,12 @@ const applyTheme = () => {
     document.getElementById('box-a').style.backgroundColor = finalA;
     document.getElementById('bar-a').style.background =
         `linear-gradient(to right, rgba(15,15,15,0.9), ${finalA})`;
+    
+    // 同步更新控制台的选色器，确保下次点“加分”时不会把颜色冲掉
+    document.getElementById('in-c1').value = finalH;
+    document.getElementById('in-c2').value = finalA;
 };
 
-// 只渲染一次，不闪动
 applyTheme();
 
 });
