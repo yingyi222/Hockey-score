@@ -109,7 +109,7 @@
     </style>
 </head>
 <body>
-<h1>TEST ARENA OK</h1>
+
 
 <div id="mobile-ctrl">
     <!-- PERIOD -->
@@ -203,7 +203,7 @@
 
 
 <script>
-// --- 1. 初始化 Firebase (冰场优化版 - 增加安全检查防止白屏) ---
+// --- 1. 初始化 Firebase (冰场专用：最强兼容版) ---
 const firebaseConfig = {
     apiKey: "AIzaSyBJIWIwHKMwViEPqZ1O2T20nPKQB8WGX5w",
     authDomain: "hockey-live-4fb35.firebaseapp.com",
@@ -214,18 +214,36 @@ const firebaseConfig = {
     appId: "1:953317134180:web:4374c570bab5f11b1a3471"
 };
 
-// 检查是否已经初始化过，防止报错
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
+// 使用 window.onload 确保 Firebase 库加载完后再运行，防止白屏
+window.onload = function() {
+    try {
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
 
-// 强制使用长轮询 (Long Polling)，避开冰场 WebSocket 封锁
-// 增加条件判断，确保代码不会因为库没加载完而导致页面空白
-if (firebase.database && firebase.database.INTERNAL) {
-    firebase.database.INTERNAL.forceLongPolling();
-}
+        // 核心：强制开启长轮询 (针对冰场网络优化)
+        if (firebase.database && firebase.database.INTERNAL) {
+            firebase.database.INTERNAL.forceLongPolling();
+        }
 
-const db = firebase.database().ref('vMega_Scoreboard');
+        // 加上 window. 前缀确保全局可用
+        window.db = firebase.database().ref('vMega_Scoreboard');
+        
+        console.log("Firebase Arena Mode: Active");
+        
+        // 如果你后面还有读取 db 的代码（比如 db.on(...)），请确保它们也在这个函数内运行
+        startScoreboard(); 
+        
+    } catch (e) {
+        console.error("Firebase Error: ", e);
+    }
+};
+
+// 预留一个启动函数，把你原本用来监听比分的代码包在里面
+function startScoreboard() {
+    if (!window.db) return;
+    // 这里放你原本的 db.on('value', ...) 代码
+}
 
 const defaultHomeColor = "#0A3A78"; // Laval 默认蓝
 
