@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hockey Scoreboard - Mega Logo Edition</title>
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
+    <style>
+        body { margin: 0; padding: 0; font-family: 'Arial Narrow', sans-serif; background: transparent; color: white; }
+        
+        /* 保持 0.25 倍率缩小以适应直播间角标 */
+       #pc-view {
+    display: none;   /* ← 只改这一行！其他全部保持不变 */
+    flex-direction: column;
+    align-items: center;
+    padding-top: 50px;
+    transform: scale(0.25);
+    transform-origin: top center;
+}
+
+
+        #main-scoreboard { display: flex; align-items: center; justify-content: center; }
+
+        .team-group { display: flex; align-items: center; }
+        .flex-reverse { flex-direction: row-reverse; }
+
+        /* 1. Logo 放大 150% (从140px到210px) */
+        .logo-img { 
+            width: 210px; height: 210px; object-fit: contain; 
+            z-index: 150; margin: 0 0.2em; /* 进一步收紧间距 */
+            filter: drop-shadow(0 8px 20px rgba(0,0,0,0.6));
+        }
+
+        /* 2. 渐变条：直接连接到比分框，无缝对接 */
+        .name-bar {
+            height: 100px; padding: 0 60px; display: flex; align-items: center;
+            transform: skew(-15deg); border: 2px solid rgba(255,255,255,0.6);
+            backdrop-filter: blur(12px);
+        }
+        #bar-h { 
+            background: linear-gradient(to left, rgba(10,10,10,0.9), rgba(22,45,68,1)); 
+            margin-right: -160px; padding-right: 180px; /* 增加延伸长度以覆盖大Logo下方 */
+        }
+        #bar-a { 
+            background: linear-gradient(to right, rgba(10,10,10,0.9), rgba(139,0,0,1)); 
+            margin-left: -160px; padding-left: 180px;
+        }
+
+        .name-txt { font-size: 60px; font-weight: 950; transform: skew(15deg); white-space: nowrap; text-transform: uppercase; }
+
+        /* 中间核心区 */
+        .center-group { display: flex; align-items: center; z-index: 200; }
+
+        .score-box {
+    width: 160px;
+    height: 160px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none; /* ← 去掉白边 */
+    box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+    transform: none;
+}
+.score-val {
+    font-size: 125px;
+    font-weight: 950;
+    transform: none;
+}
+
+
+        /* 3. 节数框：去掉左右边框，变成透明连接桥 */
+        #period-box {
+    width: 100px;
+    height: 100px; /* ← 改成和 name-bar 一样高 */
+    background: rgba(0,0,0,0.8);
+    color: #ffcc00;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 38px;
+    font-weight: 950;
+    border: none; /* ← 你之前要求去掉白边 */
+    transform: none;
+}
+.period-txt {
+    transform: none;
+}
+
+
+
+        /* 手机端控制逻辑 (保持不变) */
+        #mobile-ctrl { display: none; padding: 20px; background: #121212; min-height: 100vh; }
+        .ctrl-card { background: #222; border-radius: 12px; padding: 20px; margin-bottom: 15px; border: 1px solid #333; }
+        .m-input { width: 100%; background: #000; border: 1px solid #444; color: #fff; padding: 15px; margin: 10px 0; border-radius: 8px; font-size: 18px; }
+        .score-row { display: flex; align-items: center; justify-content: space-between; margin: 15px 0; }
+        .m-btn {
+    background: #444;
+    border: none;
+    color: white;
+    width: 90px;   /* ← 更大 */
+    height: 90px;  /* ← 更大 */
+    border-radius: 14px; /* ← 更圆润 */
+    font-size: 40px; /* ← 字更大 */
+}
+
+        
+        @media screen and (max-width: 800px) { #pc-view { display: none; } #mobile-ctrl { display: block; } }
+    </style>
+</head>
+<body>
+
+
+<div id="mobile-ctrl">
+    <!-- PERIOD -->
+    <div class="ctrl-card">
+        <select id="in-p" onchange="push()" class="m-input" style="color:#fc0;">
+            <option>1ST</option>
+            <option>2ND</option>
+            <option>3RD</option>
+            <option>OT</option>
+            <option>FINAL</option>
+        </select>
+    </div>
+
+    <!-- HOME -->
+    <div class="ctrl-card">
+        <input id="in-n1" class="m-input" placeholder="HOME NAME" oninput="push()">
+        <input type="color" id="in-c1" onchange="push()">
+
+        <div class="score-row">
+            <button class="m-btn" onclick="chS('m-s1', -1)">-</button>
+            <span id="m-s1" style="font-size:40px;">0</span>
+            <button class="m-btn" onclick="chS('m-s1', 1)">+</button>
+        </div>
+
+        <input type="file" onchange="upL(this, 1)">
+    </div>
+
+    <!-- AWAY -->
+    <div class="ctrl-card">
+        <input id="in-n2" class="m-input" placeholder="AWAY NAME" oninput="push()">
+        <input type="color" id="in-c2" onchange="push()">
+
+        <div class="score-row">
+            <button class="m-btn" onclick="chS('m-s2', -1)">-</button>
+            <span id="m-s2" style="font-size:40px;">0</span>
+            <button class="m-btn" onclick="chS('m-s2', 1)">+</button>
+        </div>
+
+        <input type="file" onchange="upL(this, 2)">
+    </div>
+</div>
+
+
+
+<!-- 这是你贴的显示区（pc-view） -->
+<div id="pc-view">
+    <div id="main-scoreboard">
+
+        <!-- HOME -->
+        <div class="team-group flex-reverse">
+            <!-- 给一个透明 PNG，避免空白闪动 -->
+            <img id="pc-l1" class="logo-img" src="transparent.png">
+
+            <!-- 给初始颜色（深蓝）和初始队名 -->
+            <div class="name-bar" id="bar-h" style="background:linear-gradient(to left, rgba(15,15,15,0.9), #0A3A78);">
+                <div class="name-txt" id="pc-n1">HOME TEAM</div>
+            </div>
+        </div>
+
+        <!-- 中间比分区 -->
+        <div class="center-group">
+            <!-- 初始 Home 颜色 -->
+            <div class="score-box" id="box-h" style="background-color:#0A3A78;">
+                <div class="score-val" id="pc-s1">0</div>
+            </div>
+
+            <div id="period-box">
+                <div class="period-txt" id="pc-p">1ST</div>
+            </div>
+
+            <!-- 初始 Away 颜色 -->
+            <div class="score-box" id="box-a" style="background-color:#333333;">
+                <div class="score-val" id="pc-s2">0</div>
+            </div>
+        </div>
+
+        <!-- AWAY -->
+        <div class="team-group">
+            <!-- 给透明 PNG，避免空白闪动 -->
+            <img id="pc-l2" class="logo-img" src="transparent.png">
+
+            <!-- 初始 Away 渐变 -->
+            <div class="name-bar" id="bar-a" style="background:linear-gradient(to right, rgba(15,15,15,0.9), #333333);">
+                <div class="name-txt" id="pc-n2">AWAY TEAM</div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+
+<script>
+// --- 1. 初始化 Firebase (针对冰场网络优化版) ---
+const firebaseConfig = {
+    apiKey: "AIzaSyBJIWIwHKMwViEPqZ1O2T20nPKQB8WGX5w",
+    authDomain: "hockey-live-4fb35.firebaseapp.com",
+    databaseURL: "https://hockey-live-4fb35-default-rtdb.firebaseio.com",
+    projectId: "hockey-live-4fb35",
+    storageBucket: "hockey-live-4fb35.firebasestorage.app",
+    messagingSenderId: "953317134180",
+    appId: "1:953317134180:web:4374c570bab5f11b1a3471"
+};
+
+// 初始化 Firebase
+firebase.initializeApp(firebaseConfig);
+
+// --- 关键修改：强制使用长轮询 ---
+// 这一行非常关键，它会让 Firebase 放弃使用被防火墙拦截的 WebSocket
+firebase.database.INTERNAL.forceLongPolling(); 
+
+const db = firebase.database().ref('vMega_Scoreboard');
+
+const defaultHomeColor = "#0A3A78"; // Laval 默认蓝
+
+// --- 2. 改进的取色算法：避开黑色，寻找最深彩色 ---
+function getDominantColorFromImage(imgElement, callback) {
+    if (!imgElement.src || imgElement.src.length < 10) return callback(null);
+
+    const img = new Image();
+    img.crossOrigin = "Anonymous";
+    img.src = imgElement.src;
+
+    img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = 50; 
+        canvas.height = 50;
+        ctx.drawImage(img, 0, 0, 50, 50);
+        const data = ctx.getImageData(0, 0, 50, 50).data;
+
+        let bestColor = null;
+        let maxSaturation = -1; // 用于寻找最鲜艳的颜色
+
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
+            
+            // 1. 忽略透明度太高的像素
+            if (a < 180) continue; 
+
+            // 2. 计算亮度 (0-1)
+            const lux = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            
+            // 3. 计算简单的饱和度 (避开黑白灰)
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            const sat = (max - min) / 255;
+
+            // 核心逻辑修改：
+            // 亮度在 0.05 (不抓死黑) 到 0.8 (不抓死白) 之间
+            // 且饱和度 > 0.1 (确保有颜色，不是灰色)
+            if (lux > 0.05 && lux < 0.8 && sat > 0.1) {
+                // 优先选择饱和度最高（最鲜艳）的颜色
+                if (sat > maxSaturation) {
+                    maxSaturation = sat;
+                    bestColor = `rgb(${r},${g},${b})`;
+                }
+            }
+        }
+        
+        // 如果最后没找到符合条件的，返回 null，让 applyTheme 使用默认色
+        callback(bestColor);
+    };
+
+    img.onerror = () => {
+        callback(null);
+    };
+}
+
+// --- 3. 核心数据推送到 Firebase ---
+function push() {
+    const data = {
+        n1: document.getElementById('in-n1').value || "HOME",
+        n2: document.getElementById('in-n2').value || "AWAY",
+        s1: document.getElementById('m-s1').innerText,
+        s2: document.getElementById('m-s2').innerText,
+        c1: document.getElementById('in-c1').value,
+        c2: document.getElementById('in-c2').value,
+        p: document.getElementById('in-p').value,
+        l1: document.getElementById('pc-l1').src, // 确保上传的Logo被保存
+        l2: document.getElementById('pc-l2').src
+    };
+    db.set(data);
+}
+
+// 修改分数函数
+function chS(id, delta) {
+    const el = document.getElementById(id);
+    let v = parseInt(el.innerText) || 0;
+    v = Math.max(0, v + delta);
+    el.innerText = v;
+    push();
+}
+
+// 上传 Logo 函数
+function upL(input, team) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const imgTag = document.getElementById('pc-l' + team);
+        imgTag.src = e.target.result; // 先显示图片
+        
+        // 图片显示后，只在这里取一次色
+        imgTag.onload = () => {
+            getDominantColorFromImage(imgTag, (color) => {
+                const hexColor = color ? rgbToHex(color) : (team === 1 ? "#0A3A78" : "#333333");
+                // 存入对应的 Color Input，这样 push 时会带上颜色
+                document.getElementById('in-c' + team).value = hexColor;
+                push(); // 这一步极其重要，把取到的颜色永久存入 Firebase
+            });
+        };
+    };
+    reader.readAsDataURL(file);
+}
+
+// --- 4. 实时监听与渲染（修复刷新变黑的关键） ---
+db.on('value', (snap) => {
+    const d = snap.val();
+    if (!d) return;   // ← 关键！没有数据时不要渲染
+
+document.getElementById('pc-view').style.display = "flex";
+
+
+
+    // A. 恢复基础文字和分数
+    document.getElementById('pc-n1').innerText = d.n1 || "HOME";
+    document.getElementById('pc-n2').innerText = d.n2 || "AWAY";
+    document.getElementById('pc-s1').innerText = d.s1 || "0";
+    document.getElementById('pc-s2').innerText = d.s2 || "0";
+    document.getElementById('pc-p').innerText = d.p || "1ST";
+
+    // B. 恢复图片（解决刷新 Logo 消失问题）
+    const img1 = document.getElementById('pc-l1');
+    const img2 = document.getElementById('pc-l2');
+    if (d.l1 && d.l1.startsWith('data:')) img1.src = d.l1;
+    if (d.l2 && d.l2.startsWith('data:')) img2.src = d.l2;
+
+    // C. 更新控制台状态
+    if (document.activeElement.id !== 'in-n1') document.getElementById('in-n1').value = d.n1 || "";
+    if (document.activeElement.id !== 'in-n2') document.getElementById('in-n2').value = d.n2 || "";
+    document.getElementById('m-s1').innerText = d.s1 || "0";
+    document.getElementById('m-s2').innerText = d.s2 || "0";
+    document.getElementById('in-p').value = d.p || "1ST";
+    if (d.c1) document.getElementById('in-c1').value = d.c1;
+    if (d.c2) document.getElementById('in-c2').value = d.c2;
+
+    // D. 颜色应用逻辑（只用 Firebase 的颜色）
+const applyTheme = () => {
+    const finalH = d.c1 || defaultHomeColor;
+    const finalA = d.c2 || "#333333";
+
+    document.getElementById('box-h').style.backgroundColor = finalH;
+    document.getElementById('bar-h').style.background =
+        `linear-gradient(to left, rgba(15,15,15,0.9), ${finalH})`;
+
+    document.getElementById('box-a').style.backgroundColor = finalA;
+    document.getElementById('bar-a').style.background =
+        `linear-gradient(to right, rgba(15,15,15,0.9), ${finalA})`;
+};
+
+// 只渲染一次，不闪动
+applyTheme();
+
+});
+</script>
+</body>
+</html>
