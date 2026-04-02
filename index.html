@@ -229,29 +229,46 @@ function getDominantColorFromImage(imgElement, callback) {
     img.onload = () => {
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
-        canvas.width = 50; canvas.height = 50;
+        canvas.width = 50; 
+        canvas.height = 50;
         ctx.drawImage(img, 0, 0, 50, 50);
         const data = ctx.getImageData(0, 0, 50, 50).data;
 
         let bestColor = null;
-        let minLuminance = 0.5; 
+        let maxSaturation = -1; // 用于寻找最鲜艳的颜色
 
         for (let i = 0; i < data.length; i += 4) {
             const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
-            if (a < 128) continue; // 忽略透明
+            
+            // 1. 忽略透明度太高的像素
+            if (a < 180) continue; 
 
-            // 计算亮度：0是全黑，1是全白
+            // 2. 计算亮度 (0-1)
             const lux = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            
+            // 3. 计算简单的饱和度 (避开黑白灰)
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            const sat = (max - min) / 255;
 
-            // 核心逻辑：亮度必须大于 0.08 (避开纯黑)，且小于 0.45 (寻找深彩色)
-            if (lux > 0.08 && lux < 0.45) {
-                if (!bestColor || lux < minLuminance) {
-                    minLuminance = lux;
+            // 核心逻辑修改：
+            // 亮度在 0.05 (不抓死黑) 到 0.8 (不抓死白) 之间
+            // 且饱和度 > 0.1 (确保有颜色，不是灰色)
+            if (lux > 0.05 && lux < 0.8 && sat > 0.1) {
+                // 优先选择饱和度最高（最鲜艳）的颜色
+                if (sat > maxSaturation) {
+                    maxSaturation = sat;
                     bestColor = `rgb(${r},${g},${b})`;
                 }
             }
         }
+        
+        // 如果最后没找到符合条件的，返回 null，让 applyTheme 使用默认色
         callback(bestColor);
+    };
+
+    img.onerror = () => {
+        callback(null);
     };
 }
 
@@ -286,8 +303,18 @@ function upL(input, team) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (e) => {
-        document.getElementById('pc-l' + team).src = e.target.result;
-        push(); // 上传后立即推送到 Firebase 以便持久化
+        const imgTag = document.getElementById('pc-l' + team);
+        imgTag.src = e.target.result; // 先显示图片
+        
+        // 图片显示后，只在这里取一次色
+        imgTag.onload = () => {
+            getDominantColorFromImage(imgTag, (color) => {
+                const hexColor = color ? rgbToHex(color) : (team === 1 ? "#0A3A78" : "#333333");
+                // 存入对应的 Color Input，这样 push 时会带上颜色
+                document.getElementById('in-c' + team).value = hexColor;
+                push(); // 这一步极其重要，把取到的颜色永久存入 Firebase
+            });
+        };
     };
     reader.readAsDataURL(file);
 }
